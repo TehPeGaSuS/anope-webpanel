@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+  <div class="mb-5">
+    <div class="page-title">Dashboard</div>
+    <div class="page-subtitle">Network overview.</div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem;">
+    <div class="card p-4 text-center">
+      <div class="font-mono" style="font-size:2rem; font-weight:700; color:#58a6ff;">{{ user_count }}</div>
+      <div style="font-size:0.75rem; color:#7d8590; text-transform:uppercase; letter-spacing:0.06em; margin-top:0.25rem;">Online users</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="font-mono" style="font-size:2rem; font-weight:700; color:#58a6ff;">{{ channel_count }}</div>
+      <div style="font-size:0.75rem; color:#7d8590; text-transform:uppercase; letter-spacing:0.06em; margin-top:0.25rem;">Channels</div>
+    </div>
+    <div class="card p-4 text-center">
+      <div class="font-mono" style="font-size:2rem; font-weight:700; color:#58a6ff;">{{ account_count }}</div>
+      <div style="font-size:0.75rem; color:#7d8590; text-transform:uppercase; letter-spacing:0.06em; margin-top:0.25rem;">Registered accounts</div>
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="section-title">Quick links</div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <a href="{{ url_for('nickserv.info') }}" class="btn btn-secondary">NickServ Info</a>
+      <a href="{{ url_for('chanserv.index') }}" class="btn btn-secondary">My Channels</a>
+      <a href="{{ url_for('memoserv.index') }}" class="btn btn-secondary">Memos</a>
+      <a href="{{ url_for('hostserv.index') }}" class="btn btn-secondary">VHost</a>
+      {% if is_oper %}
+      <a href="{{ url_for('operserv.akill') }}" class="btn btn-secondary">OperServ</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

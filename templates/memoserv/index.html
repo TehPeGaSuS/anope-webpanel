@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}MemoServ — Memos{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-lg font-semibold text-zinc-100 mb-1">Memos</h1>
+      <p class="text-sm text-zinc-500">Your incoming memos.</p>
+    </div>
+    <a href="{{ url_for('memoserv.send') }}"
+       class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs rounded-lg transition-colors">
+      Send memo
+    </a>
+  </div>
+  {% if result %}
+  <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-zinc-800">
+          <th class="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide w-10">#</th>
+          <th class="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">From</th>
+          <th class="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">Preview</th>
+          <th class="px-4 py-2.5"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-zinc-800">
+        {% for memo in result %}
+        <tr class="group">
+          <td class="px-4 py-3 text-zinc-500 font-mono text-xs">{{ loop.index }}</td>
+          <td class="px-4 py-3 font-mono text-zinc-300">{{ memo.sender or '?' }}</td>
+          <td class="px-4 py-3 text-zinc-500 text-xs truncate max-w-xs">{{ memo.text or memo }}</td>
+          <td class="px-4 py-3 text-right">
+            <span class="flex gap-3 justify-end opacity-0 group-hover:opacity-100">
+              <a href="{{ url_for('memoserv.read', num=loop.index) }}"
+                 class="text-xs text-zinc-500 hover:text-sky-400 transition-colors">read</a>
+              <form method="POST" action="{{ url_for('memoserv.delete') }}" class="inline">
+                <input type="hidden" name="num" value="{{ loop.index }}">
+                <button type="submit" class="text-xs text-zinc-500 hover:text-red-400 transition-colors">delete</button>
+              </form>
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-sm text-zinc-500">No memos.</div>
+  {% endif %}
+</div>
+{% endblock %}

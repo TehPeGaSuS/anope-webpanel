@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Modes{% endblock %}
+{% block content %}
+
+<div style="max-width:700px;">
+  <div class="mb-5">
+    <div class="page-title">Channel Modes</div>
+    <div class="page-subtitle">Current modes and users in {{ channel }}.</div>
+  </div>
+
+  {% if ci %}
+  <div class="card mb-4 p-4">
+    <div class="section-title">Modes</div>
+    {% if ci.modes %}
+      {% for mode in ci.modes %}
+      <div class="font-mono mb-1" style="color:#58a6ff; font-size:0.9rem;">{{ mode }}</div>
+      {% endfor %}
+    {% else %}
+    <div style="color:#7d8590; font-size:0.85rem;">No modes set.</div>
+    {% endif %}
+  </div>
+
+  {% if ci.topic %}
+  <div class="card mb-4 p-4">
+    <div class="section-title">Topic</div>
+    <div style="color:#c9d1d9; font-size:0.9rem; margin-bottom:0.5rem;">{{ ci.topic.value }}</div>
+    <div style="color:#7d8590; font-size:0.75rem;">
+      Set by {{ ci.topic.setby }} 
+    </div>
+  </div>
+  {% endif %}
+
+  {% if ci.users %}
+  <div class="card p-4">
+    <div class="section-title">Current users ({{ ci.users|length }})</div>
+    <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+      {% for user in ci.users %}
+      <span class="font-mono" style="background:#21262d; border:1px solid #30363d;
+            padding:0.2rem 0.5rem; border-radius:3px; font-size:0.8rem;
+            color:{% if user.startswith('@') %}#58a6ff{% elif user.startswith('+') %}#3fb950{% else %}#7d8590{% endif %};">
+        {{ user }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">Could not load channel info.</div>
+  {% endif %}
+</div>
+{% endblock %}

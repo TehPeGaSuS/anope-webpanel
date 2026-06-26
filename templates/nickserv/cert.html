@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Certificates{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div class="mb-5">
+    <div class="page-title">SSL Certificates</div>
+    <div class="page-subtitle">Certificate fingerprints for certificate-based login.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add certificate</div>
+    <form method="POST" action="{{ url_for('nickserv.cert_add') }}" class="flex gap-2">
+      <input type="text" name="fingerprint" placeholder="SHA-256 fingerprint" class="form-input font-mono">
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    </form>
+  </div>
+
+  {% if certs %}
+  <div class="card">
+    <table class="data-table">
+      <thead><tr><th>Fingerprint</th><th></th></tr></thead>
+      <tbody>
+        {% for fp in certs %}
+        <tr>
+          <td class="font-mono" style="font-size:0.82rem; color:#c9d1d9;">{{ fp }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('nickserv.cert_del') }}">
+              <input type="hidden" name="fingerprint" value="{{ fp }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">No certificates on file.</div>
+  {% endif %}
+</div>
+{% endblock %}

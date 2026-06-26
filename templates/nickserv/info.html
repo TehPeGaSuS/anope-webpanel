@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Info{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+  <div class="mb-5">
+    <div class="page-title">Nick Info</div>
+    <div class="page-subtitle">Your account details on this network.</div>
+  </div>
+
+  {% if account %}
+  <div class="card mb-4">
+    <table class="data-table">
+      <tbody>
+        <tr><td style="color:#7d8590; width:160px;">Account</td><td class="font-mono" style="color:#58a6ff;">{{ account.display }}</td></tr>
+        <tr><td style="color:#7d8590;">Email</td><td class="font-mono">{{ account.email or '—' }}</td></tr>
+        <tr><td style="color:#7d8590;">Registered</td><td>{{ account.registered | datetimeformat }}</td></tr>
+        <tr><td style="color:#7d8590;">Language</td><td>{{ account.language or '—' }}</td></tr>
+        {% if account.opertype %}
+        <tr>
+          <td style="color:#7d8590;">Oper type</td>
+          <td><span style="background:#1f3a5f; color:#58a6ff; font-size:0.75rem; padding:0.15rem 0.5rem; border-radius:3px;" class="font-mono">{{ account.opertype.name }}</span></td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mb-5">
+    <div class="page-title" style="font-size:0.8rem; margin-bottom:0.75rem;">Grouped Nicks</div>
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nick</th>
+            <th>Last seen</th>
+            <th>VHost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for nick, data in account.nicks.items() %}
+          <tr>
+            <td class="font-mono" style="color:{% if nick == account.display %}#58a6ff{% else %}#c9d1d9{% endif %};">
+              {{ nick }}
+              {% if nick == account.display %}
+              <span style="font-size:0.7rem; color:#7d8590;">(display)</span>
+              {% endif %}
+            </td>
+            <td style="color:#7d8590; font-size:0.82rem;">{{ data.lastseen | datetimeformat }}</td>
+            <td class="font-mono" style="color:#7d8590; font-size:0.82rem;">
+              {% if data.vhost %}{{ data.vhost.mask }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <div style="color:#7d8590;">Could not load account info.</div>
+  {% endif %}
+</div>
+{% endblock %}

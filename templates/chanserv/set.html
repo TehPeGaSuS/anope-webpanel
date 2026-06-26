@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Settings{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+  <div class="flex items-center gap-2 mb-1">
+    <a href="{{ url_for('chanserv.index') }}" class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors">Channels</a>
+    <span class="text-zinc-700">/</span>
+    <span class="text-zinc-100 font-mono text-sm font-medium">{{ channel }}</span>
+    <span class="text-zinc-700">/</span>
+    <span class="text-zinc-400 text-sm">Settings</span>
+  </div>
+  <p class="text-sm text-zinc-500 mb-6">Channel settings for {{ channel }}.</p>
+  <form method="POST" class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+    <div class="flex gap-2">
+      <input type="text" name="option" placeholder="Option (e.g. KEEPTOPIC)"
+             class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2
+                    text-sm font-mono text-zinc-100 placeholder-zinc-600
+                    focus:outline-none focus:ring-2 focus:ring-sky-500">
+      <input type="text" name="value" placeholder="Value (e.g. ON)"
+             class="w-32 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2
+                    text-sm font-mono text-zinc-100 placeholder-zinc-600
+                    focus:outline-none focus:ring-2 focus:ring-sky-500">
+      <button type="submit"
+              class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg transition-colors">
+        Set
+      </button>
+    </div>
+  </form>
+  <div class="mt-6 text-right">
+    <a href="{{ url_for('chanserv.drop', channel=channel) }}"
+       class="text-xs text-red-600 hover:text-red-400 transition-colors">
+      Drop channel…
+    </a>
+  </div>
+</div>
+{% endblock %}

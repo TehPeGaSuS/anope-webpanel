@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Akick{% endblock %}
+{% block content %}
+
+<div style="max-width:900px;">
+  <div class="mb-5">
+    <div class="page-title">Akick List</div>
+    <div class="page-subtitle">Auto-kick entries for {{ channel }}.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add entry</div>
+    <form method="POST" action="{{ url_for('chanserv.akick_add', channel=channel) }}"
+          class="flex gap-2">
+      <input type="text" name="mask" placeholder="nick!user@host" class="form-input" style="max-width:260px;">
+      <input type="text" name="reason" placeholder="Reason" class="form-input">
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mask</th>
+          <th>Reason</th>
+          <th>Creator</th>
+          <th>Added</th>
+          <th>Last used</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:#58a6ff;">{{ e.mask }}</td>
+          <td style="color:#c9d1d9;">{{ e.reason or '—' }}</td>
+          <td class="font-mono" style="color:#7d8590; font-size:0.8rem;">{{ e.addedby }}</td>
+          <td style="color:#7d8590; font-size:0.8rem;">{{ e.addedat }}</td>
+          <td style="color:#7d8590; font-size:0.8rem;">{{ e.lastused }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('chanserv.akick_del', channel=channel) }}">
+              <input type="hidden" name="mask" value="{{ e.mask }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">No akick entries.</div>
+  {% endif %}
+</div>
+{% endblock %}

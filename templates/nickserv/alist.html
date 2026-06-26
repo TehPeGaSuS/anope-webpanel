@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Access List{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+  <h1 class="text-lg font-semibold text-zinc-100 mb-1">Access List</h1>
+  <p class="text-sm text-zinc-500 mb-6">Hostmasks that can identify to your account automatically.</p>
+
+  <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-6">
+    <h2 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Add mask</h2>
+    <form method="POST" action="{{ url_for('nickserv.alist_add') }}" class="flex gap-2">
+      <input type="text" name="mask" placeholder="nick!user@host"
+             class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2
+                    text-sm font-mono text-zinc-100 placeholder-zinc-600
+                    focus:outline-none focus:ring-2 focus:ring-sky-500">
+      <button type="submit"
+              class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-sm rounded-lg transition-colors">
+        Add
+      </button>
+    </form>
+  </div>
+
+  {% if account and account.get('access') %}
+  <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <table class="w-full text-sm">
+      <tbody class="divide-y divide-zinc-800">
+        {% for mask in account.access %}
+        <tr class="group">
+          <td class="px-4 py-3 font-mono text-zinc-300">{{ mask }}</td>
+          <td class="px-4 py-3 text-right">
+            <form method="POST" action="{{ url_for('nickserv.alist_del') }}">
+              <input type="hidden" name="mask" value="{{ mask }}">
+              <button type="submit" class="text-xs text-zinc-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                remove
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-sm text-zinc-500">No access masks on file.</div>
+  {% endif %}
+</div>
+{% endblock %}

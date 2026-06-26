@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — Channels{% endblock %}
+{% block content %}
+
+<div style="max-width:900px;">
+  <div class="mb-5">
+    <div class="page-title">Channels you have access in</div>
+    <div class="page-subtitle">Choose a channel to access its Settings, Access or Akick pages.</div>
+  </div>
+
+  {% if channels %}
+  <div class="mb-6" style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+    {% for ch in channels %}
+    <a href="{{ url_for('chanserv.access', channel=ch.channel) }}"
+       style="display:inline-flex; align-items:center; gap:0.4rem;
+              background:{% if ch.level == 'Founder' %}#1f3a5f{% else %}#21262d{% endif %};
+              border:1px solid {% if ch.level == 'Founder' %}#388bfd{% else %}#30363d{% endif %};
+              color:{% if ch.level == 'Founder' %}#58a6ff{% else %}#c9d1d9{% endif %};
+              padding:0.25rem 0.65rem; border-radius:4px; font-size:0.8rem; font-weight:500;
+              text-decoration:none; transition:all 0.15s;"
+       title="{{ ch.level }}{% if ch.desc %} — {{ ch.desc }}{% endif %}{% if ch.noexpire %} [no expire]{% endif %}">
+      {{ ch.channel }}
+      {% if ch.noexpire %}<span style="font-size:0.6rem; color:#d29922;">●</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Level</th>
+          <th>Description</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ch in channels %}
+        <tr>
+          <td class="font-mono" style="color:#58a6ff;">
+            {{ ch.channel }}
+            {% if ch.noexpire %}
+            <span style="font-size:0.65rem; color:#d29922; margin-left:4px;" title="No expire">NOEXPIRE</span>
+            {% endif %}
+          </td>
+          <td>
+            <span style="font-size:0.75rem; font-weight:600; padding:0.15rem 0.5rem; border-radius:3px;
+              {% if ch.level == 'Founder' %}background:#1f3a5f; color:#58a6ff;
+              {% elif ch.level in ['SOP','QOP','AOP','HOP','VOP'] %}background:#2a1f5f; color:#bc8cff;
+              {% else %}background:#21262d; color:#7d8590;{% endif %}">
+              {{ ch.level }}
+            </span>
+          </td>
+          <td style="color:#7d8590; font-size:0.85rem;">{{ ch.desc }}</td>
+          <td style="text-align:right;">
+            <div style="display:flex; gap:0.4rem; justify-content:flex-end;">
+              <a href="{{ url_for('chanserv.access', channel=ch.channel) }}" class="btn btn-secondary">Access</a>
+              <a href="{{ url_for('chanserv.akick', channel=ch.channel) }}" class="btn btn-secondary">Akick</a>
+              <a href="{{ url_for('chanserv.set_options', channel=ch.channel) }}" class="btn btn-secondary">Settings</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">No channels found.</div>
+  {% endif %}
+</div>
+{% endblock %}

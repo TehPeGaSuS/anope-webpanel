@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}OperServ — AKILL{% endblock %}
+{% block content %}
+
+<div style="max-width:1000px;">
+  <div class="mb-5">
+    <div class="page-title">AKILL List</div>
+    <div class="page-subtitle">Network-wide bans.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add AKILL</div>
+    <form method="POST" action="{{ url_for('operserv.akill_add') }}" class="flex gap-2">
+      <input type="text" name="mask" placeholder="user@host" class="form-input" style="max-width:220px;">
+      <input type="text" name="expiry" placeholder="Expiry (e.g. 1d, 0=perm)" class="form-input" style="max-width:170px;">
+      <input type="text" name="reason" placeholder="Reason" class="form-input">
+      <button type="submit" class="btn btn-danger" style="white-space:nowrap;">Add AKILL</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mask</th>
+          <th>Reason</th>
+          <th>Created by</th>
+          <th>Created at</th>
+          <th>Expiry</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:#f85149;">{{ e.mask }}</td>
+          <td style="color:#c9d1d9;">{{ e.reason or '—' }}</td>
+          <td class="font-mono" style="color:#7d8590; font-size:0.8rem;">{{ e.createdby }}</td>
+          <td style="color:#7d8590; font-size:0.8rem;">{{ e.createdat }}</td>
+          <td style="font-size:0.8rem;
+            {% if 'does not expire' in e.expiry %}color:#f85149;
+            {% else %}color:#d29922;{% endif %}">
+            {{ e.expiry }}
+          </td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('operserv.akill_del') }}">
+              <input type="hidden" name="mask" value="{{ e.mask }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">No active AKILLs.</div>
+  {% endif %}
+</div>
+{% endblock %}

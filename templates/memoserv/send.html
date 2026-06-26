@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}MemoServ — Send Memo{% endblock %}
+{% block content %}
+<div class="max-w-sm">
+  <h1 class="text-lg font-semibold text-zinc-100 mb-1">Send Memo</h1>
+  <p class="text-sm text-zinc-500 mb-6">Send a memo to a nick or channel.</p>
+  <form method="POST" class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+    <div>
+      <label class="block text-xs font-medium text-zinc-400 mb-1.5">To</label>
+      <input type="text" name="target" required autofocus placeholder="Nick or #channel"
+             class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2
+                    text-sm font-mono text-zinc-100 placeholder-zinc-600
+                    focus:outline-none focus:ring-2 focus:ring-sky-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-zinc-400 mb-1.5">Message</label>
+      <textarea name="message" required rows="4"
+                class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2
+                       text-sm text-zinc-100 placeholder-zinc-600 resize-none
+                       focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+    </div>
+    <button type="submit"
+            class="w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+      Send
+    </button>
+  </form>
+</div>
+{% endblock %}

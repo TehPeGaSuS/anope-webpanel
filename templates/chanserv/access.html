@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Access{% endblock %}
+{% block content %}
+
+<div style="max-width:900px;">
+  <div class="mb-5">
+    <div class="page-title">Access List</div>
+    <div class="page-subtitle">FLAGS-based access entries for {{ channel }}.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add / update entry</div>
+    <form method="POST" action="{{ url_for('chanserv.access_add', channel=channel) }}"
+          class="flex gap-2">
+      <input type="text" name="mask" placeholder="nick or mask" class="form-input" style="max-width:220px;">
+      <input type="text" name="flags" placeholder="+flags (e.g. +oOtv)" class="form-input" style="max-width:180px;">
+      <button type="submit" class="btn btn-primary">Set</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mask</th>
+          <th>Flags</th>
+          <th>Added by</th>
+          <th>Added at</th>
+          <th>Comment</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr {% if e.mask == session.account %}style="background:#1a2a3a;"{% endif %}>
+          <td class="font-mono" style="color:#58a6ff;">
+            {{ e.mask }}
+            {% if e.mask == session.account %}
+            <span style="font-size:0.7rem; color:#388bfd; font-family:sans-serif;">(you)</span>
+            {% endif %}
+          </td>
+          <td class="font-mono" style="color:#bc8cff; font-size:0.85rem;">{{ e.flags }}</td>
+          <td class="font-mono" style="color:#7d8590; font-size:0.8rem;">{{ e.addedby }}</td>
+          <td style="color:#7d8590; font-size:0.8rem;">{{ e.addedat }}</td>
+          <td style="color:#7d8590; font-size:0.8rem;">{{ e.comment }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('chanserv.access_del', channel=channel) }}"
+                  hx-post="{{ url_for('chanserv.access_del', channel=channel) }}"
+                  hx-target="closest tr" hx-swap="outerHTML"
+                  hx-confirm="Remove {{ e.mask }} from {{ channel }}?">
+              <input type="hidden" name="mask" value="{{ e.mask }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">No access entries.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Reset Password{% endblock %}
+{% block content %}
+<div class="max-w-sm mx-auto mt-12">
+  <h1 class="text-lg font-semibold text-zinc-100 mb-1">Reset Password</h1>
+  <p class="text-sm text-zinc-500 mb-6">Enter your nick and we'll send a reset email.</p>
+  <form method="POST" class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+    <div>
+      <label class="block text-xs font-medium text-zinc-400 mb-1.5">Nick / Account</label>
+      <input type="text" name="username" required autofocus
+             class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2
+                    text-sm text-zinc-100 placeholder-zinc-600
+                    focus:outline-none focus:ring-2 focus:ring-sky-500">
+    </div>
+    <button type="submit"
+            class="w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+      Send reset email
+    </button>
+  </form>
+  <div class="mt-4 text-center">
+    <a href="{{ url_for('auth.login') }}" class="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">Back to login</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — Drop {{ channel }}{% endblock %}
+{% block content %}
+<div class="max-w-sm">
+  <h1 class="text-lg font-semibold text-zinc-100 mb-1">Drop Channel</h1>
+  <p class="text-sm text-zinc-500 mb-6">This is permanent. Type the channel name to confirm.</p>
+  <form method="POST" class="bg-zinc-900 border border-red-900 rounded-xl p-5 space-y-4">
+    <div>
+      <label class="block text-xs font-medium text-zinc-400 mb-1.5">Type <span class="font-mono text-red-400">{{ channel }}</span> to confirm</label>
+      <input type="text" name="confirm" required autofocus
+             class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2
+                    text-sm font-mono text-zinc-100 focus:outline-none focus:ring-2 focus:ring-red-500">
+    </div>
+    <button type="submit"
+            class="w-full bg-red-700 hover:bg-red-600 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+      Drop {{ channel }}
+    </button>
+  </form>
+</div>
+{% endblock %}
