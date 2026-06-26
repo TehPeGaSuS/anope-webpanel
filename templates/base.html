@@ -138,13 +138,18 @@
         <a href="{{ url_for('nickserv.password') }}" class="sidebar-link {{ 'active' if ep == 'nickserv.password' }}">Password</a>
 
       {% elif service == 'chanserv' %}
-        <a href="{{ url_for('chanserv.index') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.index' }}">Channels</a>
+        <a href="{{ url_for('chanserv.index') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.index' }}">My Channels</a>
+        <a href="{{ url_for('chanserv.cs_list') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.cs_list' }}">Search</a>
         {% if ch %}
         <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#484f58;">{{ ch }}</div>
         <a href="{{ url_for('chanserv.set_options', channel=ch) }}" class="sidebar-link {{ 'active' if ep == 'chanserv.set_options' }}">Settings</a>
         <a href="{{ url_for('chanserv.access', channel=ch) }}"     class="sidebar-link {{ 'active' if ep == 'chanserv.access' }}">Access</a>
         <a href="{{ url_for('chanserv.akick', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.akick' }}">Akick</a>
+        <a href="{{ url_for('chanserv.entrymsg', channel=ch) }}"   class="sidebar-link {{ 'active' if ep == 'chanserv.entrymsg' }}">Entry Msgs</a>
+        <a href="{{ url_for('chanserv.log', channel=ch) }}"        class="sidebar-link {{ 'active' if ep == 'chanserv.log' }}">Log</a>
         <a href="{{ url_for('chanserv.modes', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.modes' }}">Modes</a>
+        <a href="{{ url_for('chanserv.stats', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.stats' }}">Stats</a>
+        <a href="{{ url_for('chanserv.clone', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.clone' }}">Clone</a>
         <a href="{{ url_for('chanserv.drop', channel=ch) }}"       class="sidebar-link {{ 'active' if ep == 'chanserv.drop' }}">Drop</a>
         {% endif %}
 

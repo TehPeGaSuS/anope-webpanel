@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — Channel List{% endblock %}
+{% block content %}
+<div style="max-width:900px;">
+  <div class="mb-5">
+    <div class="page-title">Channel List</div>
+    <div class="page-subtitle">Search registered channels on the network.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <form method="GET" class="flex gap-2 flex-wrap">
+      <input type="text" name="pattern" value="{{ pattern }}"
+             placeholder="Pattern (e.g. #port*)" class="form-input" style="max-width:220px;">
+      {% if session.get('is_oper') %}
+      <select name="extra" class="form-input" style="max-width:150px;">
+        <option value="" {{ 'selected' if not extra }}>Normal</option>
+        <option value="SUSPENDED" {{ 'selected' if extra == 'SUSPENDED' }}>Suspended</option>
+        <option value="NOEXPIRE" {{ 'selected' if extra == 'NOEXPIRE' }}>No expire</option>
+      </select>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+  </div>
+
+  {% if channels %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Description</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ch in channels %}
+        <tr>
+          <td class="font-mono" style="color:#58a6ff;">
+            {{ ch.channel }}
+            {% if ch.noexpire %}
+            <span style="font-size:0.65rem; color:#d29922; margin-left:4px;">NOEXPIRE</span>
+            {% endif %}
+          </td>
+          <td style="color:#7d8590; font-size:0.85rem;">{{ ch.desc }}</td>
+          <td style="text-align:right;">
+            <a href="{{ url_for('chanserv.access', channel=ch.channel) }}"
+               class="btn btn-secondary">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif pattern %}
+  <div style="color:#7d8590; font-size:0.85rem;">No channels found matching <span class="font-mono">{{ pattern }}</span>.</div>
+  {% endif %}
+</div>
+{% endblock %}

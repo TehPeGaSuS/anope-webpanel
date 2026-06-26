@@ -1,52 +1,189 @@
 {% extends "base.html" %}
 {% block title %}ChanServ — {{ channel }} Modes{% endblock %}
 {% block content %}
-
-<div style="max-width:700px;">
+<div style="max-width:1000px;">
   <div class="mb-5">
     <div class="page-title">Channel Modes</div>
-    <div class="page-subtitle">Current modes and users in {{ channel }}.</div>
+    <div class="page-subtitle">Live state and management for {{ channel }}.</div>
   </div>
 
-  {% if ci %}
+  {# ── Status result ── #}
+  {% if status_result %}
   <div class="card mb-4 p-4">
-    <div class="section-title">Modes</div>
-    {% if ci.modes %}
-      {% for mode in ci.modes %}
-      <div class="font-mono mb-1" style="color:#58a6ff; font-size:0.9rem;">{{ mode }}</div>
-      {% endfor %}
-    {% else %}
-    <div style="color:#7d8590; font-size:0.85rem;">No modes set.</div>
-    {% endif %}
-  </div>
-
-  {% if ci.topic %}
-  <div class="card mb-4 p-4">
-    <div class="section-title">Topic</div>
-    <div style="color:#c9d1d9; font-size:0.9rem; margin-bottom:0.5rem;">{{ ci.topic.value }}</div>
-    <div style="color:#7d8590; font-size:0.75rem;">
-      Set by {{ ci.topic.setby }} 
-    </div>
+    <div class="section-title">Status result</div>
+    {% for line in status_result.lines %}
+    <div style="color:#c9d1d9; font-size:0.88rem;">{{ line }}</div>
+    {% endfor %}
   </div>
   {% endif %}
 
-  {% if ci.users %}
+  {# ── Key result ── #}
+  {% if key %}
+  <div class="card mb-4 p-4" style="border-color:#d29922;">
+    <div class="section-title">Channel key</div>
+    <span class="font-mono" style="color:#d29922; font-size:1rem;">{{ key }}</span>
+  </div>
+  {% endif %}
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+
+    {# Modes #}
+    <div class="card p-4">
+      <div class="section-title">Modes</div>
+      {% if ci and ci.modes %}
+        {% for mode in ci.modes %}
+        <div class="font-mono" style="color:#58a6ff; font-size:0.9rem; margin-bottom:0.25rem;">{{ mode }}</div>
+        {% endfor %}
+      {% else %}
+      <div style="color:#7d8590; font-size:0.85rem;">No modes set.</div>
+      {% endif %}
+
+      {# Set mode form #}
+      <form method="POST" action="{{ url_for('chanserv.mode', channel=channel) }}"
+            class="flex gap-2 mt-3">
+        <input type="text" name="modes" placeholder="+m or -k key" class="form-input font-mono">
+        <button type="submit" class="btn btn-primary">Set</button>
+      </form>
+    </div>
+
+    {# Topic #}
+    <div class="card p-4">
+      <div class="section-title">Topic</div>
+      {% if ci and ci.topic %}
+      <div style="color:#c9d1d9; font-size:0.88rem; margin-bottom:0.5rem;">{{ ci.topic.value }}</div>
+      <div style="color:#7d8590; font-size:0.75rem; margin-bottom:0.75rem;">Set by {{ ci.topic.setby }}</div>
+      {% else %}
+      <div style="color:#7d8590; font-size:0.85rem; margin-bottom:0.75rem;">No topic set.</div>
+      {% endif %}
+      <form method="POST" action="{{ url_for('chanserv.topic', channel=channel) }}"
+            class="flex gap-2">
+        <input type="text" name="topic" placeholder="New topic (blank to clear)"
+               class="form-input">
+        <button type="submit" class="btn btn-primary">Set</button>
+      </form>
+    </div>
+
+  </div>
+
+  {# ── Quick actions ── #}
+  <div class="card mb-4 p-4">
+    <div class="section-title">Quick actions</div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+
+      <form method="POST" action="{{ url_for('chanserv.sync', channel=channel) }}">
+        <button type="submit" class="btn btn-secondary">Sync</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.enforce', channel=channel) }}"
+            class="flex gap-2">
+        <select name="what" class="form-input" style="max-width:140px;">
+          <option value="">All</option>
+          <option value="MODES">MODES</option>
+          <option value="BANS">BANS</option>
+          <option value="LIMIT">LIMIT</option>
+          <option value="TOPIC">TOPIC</option>
+        </select>
+        <button type="submit" class="btn btn-secondary">Enforce</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.getkey', channel=channel) }}"
+            style="display:inline;">
+        <button type="submit" class="btn btn-secondary">Get key</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.status', channel=channel) }}"
+            class="flex gap-2">
+        <input type="text" name="nick" placeholder="Nick for STATUS"
+               class="form-input font-mono" style="max-width:150px;">
+        <button type="submit" class="btn btn-secondary">Status</button>
+      </form>
+
+    </div>
+  </div>
+
+  {# ── Users + status management ── #}
+  {% if ci and ci.users %}
+  <div class="card mb-4">
+    <div style="padding:0.75rem 1rem; border-bottom:1px solid #21262d;">
+      <div class="section-title" style="margin-bottom:0;">Users ({{ ci.users|length }})</div>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nick</th>
+          <th>Give status</th>
+          <th>Remove status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in ci.users %}
+        {% set nick = user.lstrip('@&+%~') %}
+        <tr>
+          <td class="font-mono" style="color:
+            {% if '@' in user or '&' in user %}#58a6ff
+            {% elif '%' in user %}#bc8cff
+            {% elif '+' in user %}#3fb950
+            {% else %}#7d8590{% endif %};">
+            {{ user }}
+          </td>
+          <td>
+            <div style="display:flex; gap:0.3rem; flex-wrap:wrap;">
+              {% for cmd in ['OP','HALFOP','VOICE','PROTECT','OWNER'] %}
+              <form method="POST" action="{{ url_for('chanserv.chstatus', channel=channel) }}">
+                <input type="hidden" name="cmd" value="{{ cmd }}">
+                <input type="hidden" name="nick" value="{{ nick }}">
+                <button type="submit" class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.7rem;">{{ cmd }}</button>
+              </form>
+              {% endfor %}
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; gap:0.3rem; flex-wrap:wrap;">
+              {% for cmd in ['DEOP','DEHALFOP','DEVOICE','DEPROTECT','DEOWNER'] %}
+              <form method="POST" action="{{ url_for('chanserv.chstatus', channel=channel) }}">
+                <input type="hidden" name="cmd" value="{{ cmd }}">
+                <input type="hidden" name="nick" value="{{ nick }}">
+                <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.4rem; font-size:0.7rem;">{{ cmd }}</button>
+              </form>
+              {% endfor %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {# ── Kick / Ban / Invite / Unban ── #}
   <div class="card p-4">
-    <div class="section-title">Current users ({{ ci.users|length }})</div>
-    <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-      {% for user in ci.users %}
-      <span class="font-mono" style="background:#21262d; border:1px solid #30363d;
-            padding:0.2rem 0.5rem; border-radius:3px; font-size:0.8rem;
-            color:{% if user.startswith('@') %}#58a6ff{% elif user.startswith('+') %}#3fb950{% else %}#7d8590{% endif %};">
-        {{ user }}
-      </span>
-      {% endfor %}
+    <div class="section-title">User actions</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+
+      <form method="POST" action="{{ url_for('chanserv.kick', channel=channel) }}" class="flex gap-2">
+        <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:140px;">
+        <input type="text" name="reason" placeholder="Reason" class="form-input">
+        <button type="submit" class="btn btn-danger">Kick</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.ban', channel=channel) }}" class="flex gap-2">
+        <input type="text" name="mask" placeholder="Mask" class="form-input font-mono" style="max-width:140px;">
+        <input type="text" name="reason" placeholder="Reason" class="form-input">
+        <button type="submit" class="btn btn-danger">Ban</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.invite', channel=channel) }}" class="flex gap-2">
+        <input type="text" name="nick" placeholder="Nick to invite" class="form-input font-mono">
+        <button type="submit" class="btn btn-primary">Invite</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.unban', channel=channel) }}" class="flex gap-2">
+        <input type="text" name="mask" placeholder="Mask (blank = you)" class="form-input font-mono">
+        <button type="submit" class="btn btn-secondary">Unban</button>
+      </form>
+
     </div>
   </div>
-  {% endif %}
 
-  {% else %}
-  <div style="color:#7d8590; font-size:0.85rem;">Could not load channel info.</div>
-  {% endif %}
 </div>
 {% endblock %}

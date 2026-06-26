@@ -35,6 +35,13 @@ def login():
             result = rpc("anope.checkCredentials", username, password)
             session["account"] = result["account"]
             session["uniqueid"] = result["uniqueid"]
+            # cache oper status in session to avoid extra RPC on every page
+            try:
+                from rpc import rpc as _rpc
+                acct = _rpc("anope.account", result["account"])
+                session["is_oper"] = bool(acct.get("opertype"))
+            except Exception:
+                session["is_oper"] = False
             next_url = request.form.get("next") or url_for("nickserv.info")
             return redirect(next_url)
         except AnopeError as e:

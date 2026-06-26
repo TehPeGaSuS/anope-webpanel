@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Log{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div class="mb-5">
+    <div class="page-title">Log Settings</div>
+    <div class="page-subtitle">Configure what actions are logged for {{ channel }}.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add log entry</div>
+    <form method="POST" action="{{ url_for('chanserv.log_add', channel=channel) }}" class="flex gap-2 flex-wrap">
+      <input type="text" name="command" placeholder="Command (e.g. chanserv/flags)"
+             class="form-input font-mono" style="max-width:240px;">
+      <select name="method" class="form-input" style="max-width:130px;">
+        <option value="MESSAGE">MESSAGE</option>
+        <option value="NOTICE">NOTICE</option>
+        <option value="MEMO">MEMO</option>
+      </select>
+      <input type="text" name="status" placeholder="Status (@, +, blank)"
+             class="form-input font-mono" style="max-width:130px;">
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Service</th>
+          <th>Method</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:#58a6ff; font-size:0.85rem;">{{ e.command }}</td>
+          <td style="color:#7d8590; font-size:0.85rem;">{{ e.service }}</td>
+          <td style="color:#c9d1d9;">{{ e.method }}</td>
+          <td class="font-mono" style="color:#7d8590;">{{ e.status or '—' }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('chanserv.log_del', channel=channel) }}">
+              <input type="hidden" name="command" value="{{ e.command }}">
+              <input type="hidden" name="method" value="{{ e.method }}">
+              <input type="hidden" name="status" value="{{ e.status }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">No log entries configured.</div>
+  {% endif %}
+</div>
+{% endblock %}

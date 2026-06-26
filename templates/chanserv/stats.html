@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Stats{% endblock %}
+{% block content %}
+<div style="max-width:600px;">
+  <div class="mb-5">
+    <div class="page-title">Channel Stats</div>
+    <div class="page-subtitle">Your activity stats for {{ channel }}.</div>
+  </div>
+
+  {% if stats %}
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.5rem;">
+    {% for key in ['lines','words','letters'] %}
+    <div class="card p-4 text-center">
+      <div class="font-mono" style="font-size:1.75rem; font-weight:700; color:#58a6ff;">{{ stats.get(key, 0) }}</div>
+      <div style="font-size:0.72rem; color:#7d8590; text-transform:uppercase; letter-spacing:0.06em; margin-top:0.25rem;">{{ key }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:1rem;">
+    {% for key in ['smileys','actions'] %}
+    <div class="card p-4 text-center">
+      <div class="font-mono" style="font-size:1.75rem; font-weight:700; color:#bc8cff;">{{ stats.get(key, 0) }}</div>
+      <div style="font-size:0.72rem; color:#7d8590; text-transform:uppercase; letter-spacing:0.06em; margin-top:0.25rem;">{{ key }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="color:#7d8590; font-size:0.85rem;">No stats available.</div>
+  {% endif %}
+</div>
+{% endblock %}
