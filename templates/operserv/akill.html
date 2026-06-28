@@ -35,9 +35,9 @@
         {% for e in entries %}
         <tr>
           <td class="font-mono" style="color:#f85149;">{{ e.mask }}</td>
-          <td style="color:#c9d1d9;">{{ e.reason or '—' }}</td>
-          <td class="font-mono" style="color:#7d8590; font-size:0.8rem;">{{ e.createdby }}</td>
-          <td style="color:#7d8590; font-size:0.8rem;">{{ e.createdat }}</td>
+          <td style="color:var(--text);">{{ e.reason or '—' }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.createdby }}</td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.createdat }}</td>
           <td style="font-size:0.8rem;
             {% if 'does not expire' in e.expiry %}color:#f85149;
             {% else %}color:#d29922;{% endif %}">
@@ -55,7 +55,7 @@
     </table>
   </div>
   {% else %}
-  <div style="color:#7d8590; font-size:0.85rem;">No active AKILLs.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No active AKILLs.</div>
   {% endif %}
 </div>
 {% endblock %}

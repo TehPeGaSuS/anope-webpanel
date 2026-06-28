@@ -33,66 +33,126 @@
     }
   </script>
   <style>
-    body { background: var(--bg, #f6f8fa); color: var(--text, #1f2328); font-family: 'Inter', sans-serif; }
-    .nav-tab { 
+    :root {
+      --accent:       {{ network_color }};
+      --bg:           #f6f8fa;
+      --nav:          #ffffff;
+      --nav-border:   #d0d7de;
+      --sidebar-bg:   #f6f8fa;
+      --sidebar-border:#d0d7de;
+      --content-bg:   #f6f8fa;
+      --card-bg:      #ffffff;
+      --card-border:  #d0d7de;
+      --td-hover:     #f6f8fa;
+      --text:         #1f2328;
+      --text-muted:   #656d76;
+      --text-code:    #0550ae;
+      --input-bg:     #ffffff;
+      --input-border: #d0d7de;
+      --pill-bg:      #eaeef2;
+      --pill-border:  #d0d7de;
+      --btn-sec-bg:   #f6f8fa;
+      --btn-sec-border:#d0d7de;
+      --btn-sec-text: #24292f;
+      --danger:       #cf222e;
+      --danger-hover: #a40e26;
+      --success-bg:   #dafbe1;
+      --success-border:#2da44e;
+      --success-text: #116329;
+      --error-bg:     #ffebe9;
+      --error-border: #cf222e;
+      --error-text:   #82071e;
+    }
+    [data-theme="dark"] {
+      --bg:           #0d1117;
+      --nav:          #161b22;
+      --nav-border:   #30363d;
+      --sidebar-bg:   #13181f;
+      --sidebar-border:#30363d;
+      --content-bg:   #0d1117;
+      --card-bg:      #161b22;
+      --card-border:  #30363d;
+      --td-hover:     #161b22;
+      --text:         #e6edf3;
+      --text-muted:   #7d8590;
+      --text-code:    #79c0ff;
+      --input-bg:     #0d1117;
+      --input-border: #30363d;
+      --pill-bg:      #21262d;
+      --pill-border:  #30363d;
+      --btn-sec-bg:   #21262d;
+      --btn-sec-border:#30363d;
+      --btn-sec-text: #c9d1d9;
+      --danger:       #da3633;
+      --danger-hover: #f85149;
+      --success-bg:   #1a3a2a;
+      --success-border:#2ea043;
+      --success-text: #56d364;
+      --error-bg:     #3d1c1c;
+      --error-border: #f85149;
+      --error-text:   #ff7b72;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+    .nav-tab {
       padding: 0 1rem; height: 100%; display: flex; align-items: center;
       font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
-      color: #7d8590; border-bottom: 2px solid transparent; transition: all 0.15s;
+      color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.15s;
       text-decoration: none;
     }
-    .nav-tab:hover { color: #e6edf3; background: #1c2128; }
-    .nav-tab.active { color: #58a6ff; border-bottom-color: #1f6feb; }
+    .nav-tab:hover { color: var(--text); background: var(--td-hover); }
+    .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .sidebar-link {
       display: block; padding: 0.5rem 1rem;
-      font-size: 0.8rem; color: #7d8590;
+      font-size: 0.8rem; color: var(--text-muted);
       transition: all 0.15s; text-decoration: none;
       border-left: 2px solid transparent;
     }
-    .sidebar-link:hover { color: #e6edf3; background: #1c2128; border-left-color: #30363d; }
-    .sidebar-link.active { color: #58a6ff; background: #161b22; border-left-color: #1f6feb; }
-    .btn { 
+    .sidebar-link:hover { color: var(--text); background: var(--td-hover); border-left-color: var(--card-border); }
+    .sidebar-link.active { color: var(--accent); background: var(--card-bg); border-left-color: var(--accent); }
+    .btn {
       display: inline-flex; align-items: center; padding: 0.3rem 0.75rem;
       font-size: 0.75rem; font-weight: 600; border-radius: 4px;
       transition: all 0.15s; cursor: pointer; border: 1px solid transparent;
       text-transform: uppercase; letter-spacing: 0.04em;
     }
-    .btn-primary { background: #1f6feb; color: #fff; border-color: #388bfd; }
-    .btn-primary:hover { background: #388bfd; }
-    .btn-danger { background: #da3633; color: #fff; border-color: #f85149; }
-    .btn-danger:hover { background: #f85149; }
-    .btn-secondary { background: #21262d; color: #c9d1d9; border-color: #30363d; }
-    .btn-secondary:hover { background: #30363d; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { filter: brightness(1.15); }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-danger:hover { background: var(--danger-hover); border-color: var(--danger-hover); }
+    .btn-secondary { background: var(--btn-sec-bg); color: var(--btn-sec-text); border-color: var(--btn-sec-border); }
+    .btn-secondary:hover { filter: brightness(0.95); }
     .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .data-table th { 
-      padding: 0.6rem 1rem; text-align: left; 
+    .data-table th {
+      padding: 0.6rem 1rem; text-align: left;
       font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-      color: #7d8590; border-bottom: 1px solid #30363d;
+      color: var(--text-muted); border-bottom: 1px solid var(--card-border);
     }
-    .data-table td { padding: 0.65rem 1rem; border-bottom: 1px solid #21262d; vertical-align: middle; }
+    .data-table td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--pill-bg); vertical-align: middle; }
     .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: #161b22; }
+    .data-table tr:hover td { background: var(--td-hover); }
     .form-input {
-      background: #0d1117; border: 1px solid #30363d; border-radius: 4px;
-      padding: 0.4rem 0.65rem; font-size: 0.85rem; color: #e6edf3; width: 100%;
+      background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 4px;
+      padding: 0.4rem 0.65rem; font-size: 0.85rem; color: var(--text); width: 100%;
       transition: border-color 0.15s;
     }
-    .form-input:focus { outline: none; border-color: #1f6feb; }
-    .form-input::placeholder { color: #484f58; }
-    .card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; }
-    .page-title { font-size: 1rem; font-weight: 600; color: #e6edf3; text-transform: uppercase; letter-spacing: 0.05em; }
-    .page-subtitle { font-size: 0.8rem; color: #7d8590; margin-top: 0.25rem; }
-    .section-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #7d8590; margin-bottom: 0.75rem; }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text-muted); }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; }
+    .page-title { font-size: 1rem; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.05em; }
+    .page-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .section-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
   </style>
   {% block head %}{% endblock %}
 </head>
 <body>
 
   {# ── Top nav ── #}
-  <header style="background:var(--nav,#ffffff); border-bottom:1px solid var(--border,#d0d7de); height:48px;" class="flex items-center px-4">
+  <header style="background:var(--nav); border-bottom:1px solid var(--card-border,#d0d7de); height:48px;" class="flex items-center px-4">
     <div class="flex items-center gap-3 mr-8">
       <span class="font-mono font-bold text-sm" style="color:#58a6ff;">ANOPE WEB</span>
       <span class="text-xs uppercase tracking-widest" style="color:#30363d;">|</span>
-      <span class="text-xs uppercase tracking-widest font-semibold" style="color:#7d8590;">Control Panel</span>
+      <span class="text-xs uppercase tracking-widest font-semibold" style="color:var(--text-muted);">Control Panel</span>
     </div>
 
     {% if session.get("account") %}
@@ -112,10 +172,10 @@
          class="nav-tab {{ 'active' if service == 'operserv' }}">OperServ</a>
     </nav>
 
-    <div class="ml-auto text-xs" style="color:#7d8590;">
-      Logged in as <span style="color:#e6edf3;" class="font-semibold">{{ session.account }}</span>
+    <div class="ml-auto text-xs" style="color:var(--text-muted);">
+      Logged in as <span style="color:var(--text);" class="font-semibold">{{ session.account }}</span>
       <a href="{{ url_for('auth.logout') }}" class="ml-2" style="color:#58a6ff;">(Logout)</a>
-      <button onclick="toggleTheme()" id="theme-btn" style="margin-left:1rem; background:#21262d; border:1px solid #30363d; color:#c9d1d9; border-radius:4px; padding:0.2rem 0.6rem; font-size:0.75rem; cursor:pointer;">🌙 Dark</button>
+      <button onclick="toggleTheme()" id="theme-btn" style="margin-left:1rem; background:var(--btn-sec-bg); border:1px solid var(--btn-sec-border); color:var(--btn-sec-text); border-radius:4px; padding:0.2rem 0.6rem; font-size:0.75rem; cursor:pointer;">🌙 Dark</button>
     </div>
     {% endif %}
   </header>
@@ -125,10 +185,30 @@
   {% set ep = request.endpoint %}
   {% set ch = request.view_args.channel if request.view_args and request.view_args.get('channel') else None %}
 
+  {# ── ChanServ channel bar ── #}
+  {% if service == 'chanserv' and session.get('chanserv_channels') %}
+  <div style="background:var(--nav); border-bottom:1px solid var(--nav-border);
+              padding:0.4rem 1rem; display:flex; flex-wrap:wrap; gap:0.35rem; align-items:center;">
+    {% for ch in session.chanserv_channels %}
+    <a href="{{ url_for('chanserv.set_options', channel=ch.channel|chanurl) }}"
+       style="display:inline-block; padding:0.2rem 0.6rem; border-radius:4px;
+              font-size:0.78rem; font-weight:500; font-family:'JetBrains Mono',monospace;
+              text-decoration:none; border:1px solid; transition:all 0.15s; white-space:nowrap;
+              {% if request.view_args and request.view_args.get('channel') == ch.channel|chanurl %}
+                background:var(--accent); color:#fff; border-color:var(--accent);
+              {% else %}
+                background:var(--pill-bg); color:var(--text); border-color:var(--card-border);
+              {% endif %}">
+      {{ ch.channel }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <div class="flex" style="min-height: calc(100vh - 48px);">
 
     {# ── Sidebar ── #}
-    <aside style="width:180px; background:var(--sidebar,#f6f8fa); border-right:1px solid var(--border,#d0d7de); flex-shrink:0;">
+    <aside style="width:180px; background:var(--sidebar-bg); border-right:1px solid var(--sidebar-border); flex-shrink:0;">
 
       {% if service == 'nickserv' %}
         <a href="{{ url_for('nickserv.info') }}"   class="sidebar-link {{ 'active' if ep == 'nickserv.info' }}">Info</a>
@@ -141,16 +221,16 @@
         <a href="{{ url_for('chanserv.index') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.index' }}">My Channels</a>
         <a href="{{ url_for('chanserv.cs_list') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.cs_list' }}">Search</a>
         {% if ch %}
-        <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#484f58;">{{ ch }}</div>
-        <a href="{{ url_for('chanserv.set_options', channel=ch) }}" class="sidebar-link {{ 'active' if ep == 'chanserv.set_options' }}">Settings</a>
-        <a href="{{ url_for('chanserv.access', channel=ch) }}"     class="sidebar-link {{ 'active' if ep == 'chanserv.access' }}">Access</a>
-        <a href="{{ url_for('chanserv.akick', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.akick' }}">Akick</a>
-        <a href="{{ url_for('chanserv.entrymsg', channel=ch) }}"   class="sidebar-link {{ 'active' if ep == 'chanserv.entrymsg' }}">Entry Msgs</a>
-        <a href="{{ url_for('chanserv.log', channel=ch) }}"        class="sidebar-link {{ 'active' if ep == 'chanserv.log' }}">Log</a>
-        <a href="{{ url_for('chanserv.modes', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.modes' }}">Modes</a>
-        <a href="{{ url_for('chanserv.stats', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.stats' }}">Stats</a>
-        <a href="{{ url_for('chanserv.clone', channel=ch) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.clone' }}">Clone</a>
-        <a href="{{ url_for('chanserv.drop', channel=ch) }}"       class="sidebar-link {{ 'active' if ep == 'chanserv.drop' }}">Drop</a>
+        <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">{{ ch }}</div>
+        <a href="{{ url_for('chanserv.set_options', channel=ch|chanurl) }}" class="sidebar-link {{ 'active' if ep == 'chanserv.set_options' }}">Settings</a>
+        <a href="{{ url_for('chanserv.access', channel=ch|chanurl) }}"     class="sidebar-link {{ 'active' if ep == 'chanserv.access' }}">Access</a>
+        <a href="{{ url_for('chanserv.akick', channel=ch|chanurl) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.akick' }}">Akick</a>
+        <a href="{{ url_for('chanserv.entrymsg', channel=ch|chanurl) }}"   class="sidebar-link {{ 'active' if ep == 'chanserv.entrymsg' }}">Entry Msgs</a>
+        <a href="{{ url_for('chanserv.log', channel=ch|chanurl) }}"        class="sidebar-link {{ 'active' if ep == 'chanserv.log' }}">Log</a>
+        <a href="{{ url_for('chanserv.modes', channel=ch|chanurl) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.modes' }}">Modes</a>
+        <a href="{{ url_for('chanserv.stats', channel=ch|chanurl) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.stats' }}">Stats</a>
+        <a href="{{ url_for('chanserv.clone', channel=ch|chanurl) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.clone' }}">Clone</a>
+        <a href="{{ url_for('chanserv.drop', channel=ch|chanurl) }}"       class="sidebar-link {{ 'active' if ep == 'chanserv.drop' }}">Drop</a>
         {% endif %}
 
       {% elif service == 'memoserv' %}
@@ -172,7 +252,7 @@
     </aside>
 
     {# ── Content ── #}
-    <main class="flex-1 p-6 overflow-y-auto" id="content">
+    <main class="flex-1 p-6 overflow-y-auto" style="background:var(--content-bg); min-width:0;" id="content">
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -180,9 +260,9 @@
             {% for category, message in messages %}
               <div class="px-4 py-3 rounded text-sm
                 {% if category == 'error' %}
-                  {{ '' }} " style="background:#3d1c1c; border:1px solid #f85149; color:#ff7b72;"
+                  {{ '' }} " style="background:var(--error-bg); border:1px solid var(--error-border); color:var(--error-text);"
                 {% else %}
-                  {{ '' }} " style="background:#1a3a2a; border:1px solid #3fb950; color:#56d364;"
+                  {{ '' }} " style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success-text);"
                 {% endif %}>
                 {{ message }}
               </div>
@@ -203,30 +283,15 @@
   {% endif %}
 
 <script>
-  const root = document.documentElement;
-  const light = {
-    '--bg':'#f6f8fa', '--nav':'#ffffff', '--border':'#d0d7de', '--sidebar':'#f6f8fa',
-    '--hover':'#eaeef2', '--text':'#1f2328', '--muted':'#656d76', '--pill':'#eaeef2',
-    '--card-bg':'#ffffff', '--td-hover':'#f6f8fa', '--link':'#0969da',
-    '--code':'#0550ae', '--danger':'#cf222e', '--success':'#1a7f37'
-  };
-  const dark = {
-    '--bg':'#0d1117', '--nav':'#161b22', '--border':'#30363d', '--sidebar':'#13181f',
-    '--hover':'#1c2128', '--text':'#e6edf3', '--muted':'#7d8590', '--pill':'#21262d',
-    '--card-bg':'#161b22', '--td-hover':'#161b22', '--link':'#58a6ff',
-    '--code':'#79c0ff', '--danger':'#f85149', '--success':'#56d364'
-  };
   function applyTheme(t) {
-    const vars = t === 'light' ? light : dark;
-    Object.entries(vars).forEach(([k,v]) => root.style.setProperty(k, v));
-    document.body.style.background = vars['--bg'];
-    document.body.style.color = vars['--text'];
+    document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
     const btn = document.getElementById('theme-btn');
-    if (btn) btn.textContent = t === 'light' ? '🌙 Dark' : '☀️ Light';
+    if (btn) btn.textContent = t === 'dark' ? '☀️ Light' : '🌙 Dark';
     localStorage.setItem('theme', t);
   }
   function toggleTheme() {
-    applyTheme(localStorage.getItem('theme') === 'dark' ? 'light' : 'dark');
+    const current = localStorage.getItem('theme') || 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
   }
   applyTheme(localStorage.getItem('theme') || 'light');
 </script>

@@ -22,7 +22,7 @@
       <tbody>
         {% for fp in certs %}
         <tr>
-          <td class="font-mono" style="font-size:0.82rem; color:#c9d1d9;">{{ fp }}</td>
+          <td class="font-mono" style="font-size:0.82rem; color:var(--text);">{{ fp }}</td>
           <td style="text-align:right;">
             <form method="POST" action="{{ url_for('nickserv.cert_del') }}">
               <input type="hidden" name="fingerprint" value="{{ fp }}">
@@ -35,7 +35,7 @@
     </table>
   </div>
   {% else %}
-  <div style="color:#7d8590; font-size:0.85rem;">No certificates on file.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No certificates on file.</div>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, g
 from rpc import rpc, AnopeError
 from auth import login_required
+from utils import parse_memo_list
 
 # ---------- MemoServ ----------
 
@@ -12,10 +13,11 @@ memo_bp = Blueprint("memoserv", __name__, url_prefix="/memoserv")
 def index():
     try:
         result = rpc("anope.command", g.account, "MemoServ", "LIST")
+        memos = parse_memo_list(result)
     except AnopeError as e:
         flash(e.message, "error")
-        result = None
-    return render_template("memoserv/index.html", result=result)
+        memos = []
+    return render_template("memoserv/index.html", memos=memos)
 
 
 @memo_bp.route("/read/<int:num>")
@@ -23,10 +25,13 @@ def index():
 def read(num):
     try:
         result = rpc("anope.command", g.account, "MemoServ", f"READ {num}")
+        # Strip header/footer lines, keep content
+        lines = [l.replace('', '').strip() for l in result
+                 if l.strip() and not l.strip().startswith("Memo") and not l.strip().startswith("There")]
     except AnopeError as e:
         flash(e.message, "error")
-        result = None
-    return render_template("memoserv/read.html", result=result, num=num)
+        lines = []
+    return render_template("memoserv/read.html", lines=lines, num=num)
 
 
 @memo_bp.route("/send", methods=["GET", "POST"])

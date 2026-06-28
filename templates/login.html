@@ -3,34 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login — Anope Web Control Panel</title>
+  <title>Login — {{ network_name }} Control Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { background:#0d1117; color:#e6edf3; font-family:'Inter',sans-serif; }
-    .form-input {
-      background:#0d1117; border:1px solid #30363d; border-radius:4px;
-      padding:0.5rem 0.75rem; font-size:0.9rem; color:#e6edf3; width:100%;
+    :root {
+      --accent:      {{ network_color }};
+      --bg:          #f6f8fa;
+      --card-bg:     #ffffff;
+      --card-border: #d0d7de;
+      --text:        #1f2328;
+      --text-muted:  #656d76;
+      --input-bg:    #ffffff;
+      --input-border:#d0d7de;
+      --error-bg:    #ffebe9;
+      --error-border:#cf222e;
+      --error-text:  #82071e;
+      --success-bg:  #dafbe1;
+      --success-border:#2da44e;
+      --success-text:#116329;
     }
-    .form-input:focus { outline:none; border-color:#1f6feb; }
-    .form-input::placeholder { color:#484f58; }
+    [data-theme="dark"] {
+      --bg:          #0d1117;
+      --card-bg:     #161b22;
+      --card-border: #30363d;
+      --text:        #e6edf3;
+      --text-muted:  #7d8590;
+      --input-bg:    #0d1117;
+      --input-border:#30363d;
+      --error-bg:    #3d1c1c;
+      --error-border:#f85149;
+      --error-text:  #ff7b72;
+      --success-bg:  #1a3a2a;
+      --success-border:#2ea043;
+      --success-text:#56d364;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .form-input {
+      background: var(--input-bg); border: 1px solid var(--input-border);
+      border-radius: 4px; padding: 0.5rem 0.75rem;
+      font-size: 0.9rem; color: var(--text); width: 100%;
+      transition: border-color 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text-muted); }
   </style>
 </head>
-<body style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
+<body>
+
+  {# Theme toggle — top right #}
+  <div style="position:fixed; top:1rem; right:1rem;">
+    <button onclick="toggleTheme()" id="theme-btn"
+            style="background:var(--card-bg); border:1px solid var(--card-border);
+                   color:var(--text-muted); border-radius:4px;
+                   padding:0.3rem 0.7rem; font-size:0.75rem; cursor:pointer;">
+      🌙 Dark
+    </button>
+  </div>
+
   <div style="width:100%; max-width:360px; padding:0 1rem;">
 
+    {# Brand #}
     <div style="text-align:center; margin-bottom:2rem;">
-      <div style="font-family:'JetBrains Mono',monospace; font-weight:700; color:#58a6ff; font-size:1.1rem; letter-spacing:0.05em;">ANOPE WEB</div>
-      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.1em; color:#7d8590; margin-top:0.25rem;">Control Panel</div>
+      {% if network_logo %}
+        <img src="{{ network_logo }}" alt="{{ network_name }}"
+             style="height:48px; width:auto; object-fit:contain; margin:0 auto 0.75rem; display:block;">
+      {% else %}
+        <div style="font-family:'JetBrains Mono',monospace; font-weight:700;
+                    color:var(--accent); font-size:1.2rem; letter-spacing:0.05em;">
+          {{ network_name | upper }}
+        </div>
+      {% endif %}
+      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.1em;
+                  color:var(--text-muted); margin-top:0.35rem;">Control Panel</div>
     </div>
 
+    {# Flash messages #}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div style="margin-bottom:1rem;">
           {% for category, message in messages %}
           <div style="padding:0.6rem 0.75rem; border-radius:4px; font-size:0.85rem; margin-bottom:0.5rem;
-            {% if category == 'error' %}background:#3d1c1c; border:1px solid #f85149; color:#ff7b72;
-            {% else %}background:#1a3a2a; border:1px solid #3fb950; color:#56d364;{% endif %}">
+            {% if category == 'error' %}
+              background:var(--error-bg); border:1px solid var(--error-border); color:var(--error-text);
+            {% else %}
+              background:var(--success-bg); border:1px solid var(--success-border); color:var(--success-text);
+            {% endif %}">
             {{ message }}
           </div>
           {% endfor %}
@@ -38,28 +104,60 @@
       {% endif %}
     {% endwith %}
 
-    <div style="background:#161b22; border:1px solid #30363d; border-radius:6px; padding:1.5rem;">
+    {# Login card #}
+    <div style="background:var(--card-bg); border:1px solid var(--card-border);
+                border-radius:8px; padding:1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+
       <form method="POST">
         <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
         <div style="margin-bottom:1rem;">
-          <label style="display:block; font-size:0.8rem; font-weight:500; color:#7d8590; margin-bottom:0.4rem;">Nick / Account</label>
-          <input type="text" name="username" autocomplete="username" autofocus class="form-input" placeholder="YourNick">
+          <label style="display:block; font-size:0.8rem; font-weight:500;
+                        color:var(--text-muted); margin-bottom:0.4rem;">Nick / Account</label>
+          <input type="text" name="username" autocomplete="username" autofocus
+                 class="form-input" placeholder="YourNick">
         </div>
+
         <div style="margin-bottom:1.25rem;">
-          <label style="display:block; font-size:0.8rem; font-weight:500; color:#7d8590; margin-bottom:0.4rem;">Password</label>
-          <input type="password" name="password" autocomplete="current-password" class="form-input" placeholder="••••••••">
+          <label style="display:block; font-size:0.8rem; font-weight:500;
+                        color:var(--text-muted); margin-bottom:0.4rem;">Password</label>
+          <input type="password" name="password" autocomplete="current-password"
+                 class="form-input" placeholder="••••••••">
         </div>
-        <button type="submit" style="width:100%; background:#1f6feb; color:#fff; border:none; border-radius:4px;
-               padding:0.55rem; font-size:0.85rem; font-weight:600; cursor:pointer; letter-spacing:0.04em;
-               text-transform:uppercase;">
+
+        <button type="submit"
+                style="width:100%; background:var(--accent); color:#fff; border:none;
+                       border-radius:4px; padding:0.6rem; font-size:0.875rem; font-weight:600;
+                       cursor:pointer; letter-spacing:0.04em; text-transform:uppercase;
+                       font-family:'Inter',sans-serif; transition: filter 0.15s;"
+                onmouseover="this.style.filter='brightness(1.15)'"
+                onmouseout="this.style.filter=''">
           Sign in
         </button>
       </form>
     </div>
 
     <div style="text-align:center; margin-top:1rem;">
-      <a href="{{ url_for('nickserv.reset') }}" style="font-size:0.8rem; color:#7d8590; text-decoration:none;">Forgot password?</a>
+      <a href="{{ url_for('nickserv.reset') }}"
+         style="font-size:0.8rem; color:var(--text-muted); text-decoration:none;">
+        Forgot password?
+      </a>
     </div>
+
   </div>
+
+  <script>
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
+      const btn = document.getElementById('theme-btn');
+      if (btn) btn.textContent = t === 'dark' ? '☀️ Light' : '🌙 Dark';
+      localStorage.setItem('theme', t);
+    }
+    function toggleTheme() {
+      applyTheme((localStorage.getItem('theme') || 'light') === 'dark' ? 'light' : 'dark');
+    }
+    applyTheme(localStorage.getItem('theme') || 'light');
+  </script>
+
 </body>
 </html>

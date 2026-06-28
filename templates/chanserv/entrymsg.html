@@ -9,7 +9,7 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Add message</div>
-    <form method="POST" action="{{ url_for('chanserv.entrymsg_add', channel=channel) }}" class="flex gap-2">
+    <form method="POST" action="{{ url_for('chanserv.entrymsg_add', channel=channel|chanurl) }}" class="flex gap-2">
       <input type="text" name="message" placeholder="Entry message text" class="form-input">
       <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
     </form>
@@ -22,10 +22,10 @@
       <tbody>
         {% for e in entries %}
         <tr>
-          <td style="color:#7d8590; width:40px;">{{ e.num }}</td>
-          <td style="color:#c9d1d9;">{{ e.text }}</td>
+          <td style="color:var(--text-muted); width:40px;">{{ e.num }}</td>
+          <td style="color:var(--text);">{{ e.text }}</td>
           <td style="text-align:right;">
-            <form method="POST" action="{{ url_for('chanserv.entrymsg_del', channel=channel) }}">
+            <form method="POST" action="{{ url_for('chanserv.entrymsg_del', channel=channel|chanurl) }}">
               <input type="hidden" name="num" value="{{ e.num }}">
               <button type="submit" class="btn btn-danger">Delete</button>
             </form>
@@ -34,15 +34,15 @@
         {% endfor %}
       </tbody>
     </table>
-    <div style="padding:0.75rem 1rem; border-top:1px solid #21262d; text-align:right;">
-      <form method="POST" action="{{ url_for('chanserv.entrymsg_clear', channel=channel) }}">
+    <div style="padding:0.75rem 1rem; border-top:1px solid var(--pill-bg); text-align:right;">
+      <form method="POST" action="{{ url_for('chanserv.entrymsg_clear', channel=channel|chanurl) }}">
         <button type="submit" class="btn btn-danger"
                 onclick="return confirm('Clear all entry messages?')">Clear all</button>
       </form>
     </div>
   </div>
   {% else %}
-  <div style="color:#7d8590; font-size:0.85rem;">No entry messages set.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No entry messages set.</div>
   {% endif %}
 </div>
 {% endblock %}

@@ -13,14 +13,14 @@
   <div class="card mb-5">
     <table class="data-table">
       <tbody>
-        <tr><td style="color:#7d8590;width:140px;">Founder</td><td class="font-mono" style="color:#58a6ff;">{{ info.get('founder','—') }}</td></tr>
-        <tr><td style="color:#7d8590;">Successor</td><td class="font-mono">{{ info.get('successor','—') }}</td></tr>
-        <tr><td style="color:#7d8590;">Description</td><td>{{ info.get('description','—') }}</td></tr>
-        <tr><td style="color:#7d8590;">URL</td><td class="font-mono">{{ info.get('url','—') }}</td></tr>
-        <tr><td style="color:#7d8590;">Registered</td><td style="font-size:0.85rem;">{{ info.get('registered','—') }}</td></tr>
-        <tr><td style="color:#7d8590;">Last used</td><td style="font-size:0.85rem;">{{ info.get('last_used','—') }}</td></tr>
-        <tr><td style="color:#7d8590;">Ban type</td><td class="font-mono">{{ info.get('ban_type','—') }}</td></tr>
-        <tr><td style="color:#7d8590;">Mode lock</td><td class="font-mono" style="font-size:0.8rem;">{{ info.get('mode_lock','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);width:140px;">Founder</td><td class="font-mono" style="color:#58a6ff;">{{ info.get('founder','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);">Successor</td><td class="font-mono">{{ info.get('successor','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);">Description</td><td>{{ info.get('description','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);">URL</td><td class="font-mono">{{ info.get('url','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);">Registered</td><td style="font-size:0.85rem;">{{ info.get('registered','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);">Last used</td><td style="font-size:0.85rem;">{{ info.get('last_used','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);">Ban type</td><td class="font-mono">{{ info.get('ban_type','—') }}</td></tr>
+        <tr><td style="color:var(--text-muted);">Mode lock</td><td class="font-mono" style="font-size:0.8rem;">{{ info.get('mode_lock','—') }}</td></tr>
       </tbody>
     </table>
   </div>
@@ -46,20 +46,20 @@
       {% for cs_name, opt_key, desc in toggles %}
       {% set is_on = opt_key in info.option_set %}
       <div style="display:flex; align-items:center; justify-content:space-between;
-                  background:#0d1117; border:1px solid #30363d; border-radius:4px;
+                  background:var(--bg); border:1px solid var(--card-border); border-radius:4px;
                   padding:0.5rem 0.75rem;">
         <div>
-          <div class="font-mono" style="font-size:0.8rem; color:#c9d1d9;">{{ cs_name }}</div>
-          <div style="font-size:0.72rem; color:#7d8590;">{{ desc }}</div>
+          <div class="font-mono" style="font-size:0.8rem; color:var(--text);">{{ cs_name }}</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">{{ desc }}</div>
         </div>
-        <form method="POST" action="{{ url_for('chanserv.set_option', channel=channel) }}" style="margin-left:1rem;">
+        <form method="POST" action="{{ url_for('chanserv.set_option', channel=channel|chanurl) }}" style="margin-left:1rem;">
           <input type="hidden" name="option" value="{{ cs_name }}">
           <input type="hidden" name="value" value="{{ 'OFF' if is_on else 'ON' }}">
           <button type="submit" style="
             padding:0.2rem 0.6rem; border-radius:3px; font-size:0.72rem; font-weight:600;
             cursor:pointer; border:1px solid;
-            {% if is_on %}background:#1a3a2a; color:#3fb950; border-color:#2ea043;
-            {% else %}background:#21262d; color:#7d8590; border-color:#30363d;{% endif %}">
+            {% if is_on %}background:#1a3a2a; color:#3fb950; border-color:var(--success-border);
+            {% else %}background:var(--pill-bg); color:var(--text-muted); border-color:var(--card-border);{% endif %}">
             {{ 'ON' if is_on else 'OFF' }}
           </button>
         </form>
@@ -73,20 +73,20 @@
     <div class="section-title">Text settings</div>
     <div style="display:grid; gap:0.75rem;">
 
-      <form method="POST" action="{{ url_for('chanserv.set_desc', channel=channel) }}" class="flex gap-2 items-center">
-        <label style="color:#7d8590; font-size:0.8rem; width:100px; flex-shrink:0;">Description</label>
+      <form method="POST" action="{{ url_for('chanserv.set_desc', channel=channel|chanurl) }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:100px; flex-shrink:0;">Description</label>
         <input type="text" name="desc" value="{{ info.get('description','') }}" class="form-input">
         <button type="submit" class="btn btn-primary">Save</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.set_url', channel=channel) }}" class="flex gap-2 items-center">
-        <label style="color:#7d8590; font-size:0.8rem; width:100px; flex-shrink:0;">URL</label>
+      <form method="POST" action="{{ url_for('chanserv.set_url', channel=channel|chanurl) }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:100px; flex-shrink:0;">URL</label>
         <input type="text" name="url" value="{{ info.get('url','') }}" class="form-input font-mono">
         <button type="submit" class="btn btn-primary">Save</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.set_email', channel=channel) }}" class="flex gap-2 items-center">
-        <label style="color:#7d8590; font-size:0.8rem; width:100px; flex-shrink:0;">Email</label>
+      <form method="POST" action="{{ url_for('chanserv.set_email', channel=channel|chanurl) }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:100px; flex-shrink:0;">Email</label>
         <input type="text" name="email" value="{{ info.get('email','') }}" class="form-input font-mono">
         <button type="submit" class="btn btn-primary">Save</button>
       </form>
@@ -99,28 +99,30 @@
     <div class="section-title">Ownership</div>
     <div style="display:grid; gap:0.75rem;">
 
-      <form method="POST" action="{{ url_for('chanserv.set_founder', channel=channel) }}" class="flex gap-2 items-center">
-        <label style="color:#7d8590; font-size:0.8rem; width:100px; flex-shrink:0;">Founder</label>
+      <form method="POST" action="{{ url_for('chanserv.set_founder', channel=channel|chanurl) }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:100px; flex-shrink:0;">Founder</label>
         <input type="text" name="founder" value="{{ info.get('founder','') }}" class="form-input font-mono">
         <button type="submit" class="btn btn-primary">Save</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.set_successor', channel=channel) }}" class="flex gap-2 items-center">
-        <label style="color:#7d8590; font-size:0.8rem; width:100px; flex-shrink:0;">Successor</label>
+      <form method="POST" action="{{ url_for('chanserv.set_successor', channel=channel|chanurl) }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:100px; flex-shrink:0;">Successor</label>
         <input type="text" name="successor" value="{{ info.get('successor','') }}" class="form-input font-mono">
         <button type="submit" class="btn btn-primary">Save</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.set_bantype', channel=channel) }}" class="flex gap-2 items-center">
-        <label style="color:#7d8590; font-size:0.8rem; width:100px; flex-shrink:0;">Ban type</label>
-        <select name="bantype" class="form-input" style="max-width:200px;">
-          {% for i in range(4) %}
-          <option value="{{ i }}" {{ 'selected' if info.get('ban_type','0')|string == i|string }}>
-            Type {{ i }} —
-            {% if i == 0 %}*!user@host
-            {% elif i == 1 %}*!*@host
-            {% elif i == 2 %}*!*@*.domain
-            {% else %}nick!user@host{% endif %}
+      <form method="POST" action="{{ url_for('chanserv.set_bantype', channel=channel|chanurl) }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:100px; flex-shrink:0;">Ban type</label>
+        <select name="bantype" class="form-input" style="max-width:260px;">
+          {% set bantypes = [
+            (0, '*!user@host'),
+            (1, '*!*user@host'),
+            (2, '*!*@host'),
+            (3, '*!*user@*.domain'),
+          ] %}
+          {% for val, desc in bantypes %}
+          <option value="{{ val }}" {{ 'selected' if info.get('ban_type','0')|string == val|string }}>
+            Type {{ val }} — {{ desc }}
           </option>
           {% endfor %}
         </select>
@@ -134,18 +136,18 @@
   <div class="card p-4">
     <div class="section-title">Oper actions</div>
     <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
-      <form method="POST" action="{{ url_for('chanserv.suspend', channel=channel) }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('chanserv.suspend', channel=channel|chanurl) }}" class="flex gap-2">
         <input type="text" name="reason" placeholder="Suspend reason" class="form-input" style="max-width:220px;">
         <button type="submit" class="btn btn-danger">Suspend</button>
       </form>
-      <form method="POST" action="{{ url_for('chanserv.unsuspend', channel=channel) }}">
+      <form method="POST" action="{{ url_for('chanserv.unsuspend', channel=channel|chanurl) }}">
         <button type="submit" class="btn btn-secondary">Unsuspend</button>
       </form>
     </div>
   </div>
 
   {% else %}
-  <div style="color:#7d8590; font-size:0.85rem;">Could not load channel settings.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">Could not load channel settings.</div>
   {% endif %}
 </div>
 {% endblock %}

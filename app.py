@@ -15,6 +15,22 @@ def create_app():
     app.config["ANOPE_RPC_TOKEN"] = os.environ.get("ANOPE_RPC_TOKEN", "")
 
     # ---------- Template filters ----------
+    @app.template_filter("chanurl")
+    def chanurl_filter(channel):
+        """Strip leading # for use in url_for channel arguments."""
+        return channel.lstrip("#") if channel else channel
+
+    # ---------- Network branding ----------
+    @app.context_processor
+    def inject_network():
+        return {
+            "network_name":  os.environ.get("NETWORK_NAME", "Anope"),
+            "network_url":   os.environ.get("NETWORK_URL", "/"),
+            "network_logo":  os.environ.get("NETWORK_LOGO", ""),
+            "network_color": os.environ.get("NETWORK_COLOR", "#1f6feb"),
+        }
+
+    # ---------- Template filters ----------
     @app.template_filter("datetimeformat")
     def datetimeformat(ts):
         if not ts:

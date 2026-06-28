@@ -10,7 +10,7 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Add entry</div>
-    <form method="POST" action="{{ url_for('chanserv.akick_add', channel=channel) }}"
+    <form method="POST" action="{{ url_for('chanserv.akick_add', channel=channel|chanurl) }}"
           class="flex gap-2">
       <input type="text" name="mask" placeholder="nick!user@host" class="form-input" style="max-width:260px;">
       <input type="text" name="reason" placeholder="Reason" class="form-input">
@@ -35,12 +35,12 @@
         {% for e in entries %}
         <tr>
           <td class="font-mono" style="color:#58a6ff;">{{ e.mask }}</td>
-          <td style="color:#c9d1d9;">{{ e.reason or '—' }}</td>
-          <td class="font-mono" style="color:#7d8590; font-size:0.8rem;">{{ e.addedby }}</td>
-          <td style="color:#7d8590; font-size:0.8rem;">{{ e.addedat }}</td>
-          <td style="color:#7d8590; font-size:0.8rem;">{{ e.lastused }}</td>
+          <td style="color:var(--text);">{{ e.reason or '—' }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedby }}</td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedat }}</td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.lastused }}</td>
           <td style="text-align:right;">
-            <form method="POST" action="{{ url_for('chanserv.akick_del', channel=channel) }}">
+            <form method="POST" action="{{ url_for('chanserv.akick_del', channel=channel|chanurl) }}">
               <input type="hidden" name="mask" value="{{ e.mask }}">
               <button type="submit" class="btn btn-danger">Delete</button>
             </form>
@@ -51,7 +51,7 @@
     </table>
   </div>
   {% else %}
-  <div style="color:#7d8590; font-size:0.85rem;">No akick entries.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No akick entries.</div>
   {% endif %}
 </div>
 {% endblock %}

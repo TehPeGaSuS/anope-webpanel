@@ -264,3 +264,23 @@ def parse_cs_list(lines):
 def parse_clone_result(lines):
     """Returns list of result lines, skipping empty ones."""
     return [l.strip() for l in lines if l.strip()]
+
+
+def parse_memo_list(lines):
+    """
+    Format: "* N: sent by SENDER at DATE" (unread) or "  N: sent by SENDER at DATE" (read)
+    First line is header, last is footer.
+    """
+    pattern = re.compile(r'^(\*\s+|\s+)?(\d+):\s+sent by\s+(\S+)\s+at\s+(.+)$')
+    memos = []
+    for line in lines:
+        line = line.replace('\x02', '').strip()  # strip IRC bold
+        m = pattern.match(line)
+        if m:
+            memos.append({
+                "num":    int(m.group(2)),
+                "unread": m.group(1) is not None and '*' in m.group(1),
+                "sender": m.group(3),
+                "date":   m.group(4).strip(),
+            })
+    return memos

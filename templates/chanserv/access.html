@@ -10,7 +10,7 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Add / update entry</div>
-    <form method="POST" action="{{ url_for('chanserv.access_add', channel=channel) }}"
+    <form method="POST" action="{{ url_for('chanserv.access_add', channel=channel|chanurl) }}"
           class="flex gap-2">
       <input type="text" name="mask" placeholder="nick or mask" class="form-input" style="max-width:220px;">
       <input type="text" name="flags" placeholder="+flags (e.g. +oOtv)" class="form-input" style="max-width:180px;">
@@ -41,12 +41,12 @@
             {% endif %}
           </td>
           <td class="font-mono" style="color:#bc8cff; font-size:0.85rem;">{{ e.flags }}</td>
-          <td class="font-mono" style="color:#7d8590; font-size:0.8rem;">{{ e.addedby }}</td>
-          <td style="color:#7d8590; font-size:0.8rem;">{{ e.addedat }}</td>
-          <td style="color:#7d8590; font-size:0.8rem;">{{ e.comment }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedby }}</td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedat }}</td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.comment }}</td>
           <td style="text-align:right;">
-            <form method="POST" action="{{ url_for('chanserv.access_del', channel=channel) }}"
-                  hx-post="{{ url_for('chanserv.access_del', channel=channel) }}"
+            <form method="POST" action="{{ url_for('chanserv.access_del', channel=channel|chanurl) }}"
+                  hx-post="{{ url_for('chanserv.access_del', channel=channel|chanurl) }}"
                   hx-target="closest tr" hx-swap="outerHTML"
                   hx-confirm="Remove {{ e.mask }} from {{ channel }}?">
               <input type="hidden" name="mask" value="{{ e.mask }}">
@@ -59,7 +59,7 @@
     </table>
   </div>
   {% else %}
-  <div style="color:#7d8590; font-size:0.85rem;">No access entries.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No access entries.</div>
   {% endif %}
 </div>
 {% endblock %}

@@ -9,10 +9,10 @@
   <div class="card p-4">
     {% if result %}
     {% for line in result %}
-    <div class="font-mono" style="font-size:0.82rem; color:#c9d1d9; padding:0.2rem 0;">{{ line }}</div>
+    <div class="font-mono" style="font-size:0.82rem; color:var(--text); padding:0.2rem 0;">{{ line }}</div>
     {% endfor %}
     {% else %}
-    <div style="color:#7d8590; font-size:0.85rem;">No session data.</div>
+    <div style="color:var(--text-muted); font-size:0.85rem;">No session data.</div>
     {% endif %}
   </div>
 </div>

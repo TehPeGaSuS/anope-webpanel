@@ -41,9 +41,9 @@
             <span style="font-size:0.65rem; color:#d29922; margin-left:4px;">NOEXPIRE</span>
             {% endif %}
           </td>
-          <td style="color:#7d8590; font-size:0.85rem;">{{ ch.desc }}</td>
+          <td style="color:var(--text-muted); font-size:0.85rem;">{{ ch.desc }}</td>
           <td style="text-align:right;">
-            <a href="{{ url_for('chanserv.access', channel=ch.channel) }}"
+            <a href="{{ url_for('chanserv.access', channel=ch.channel|chanurl) }}"
                class="btn btn-secondary">View</a>
           </td>
         </tr>
@@ -52,7 +52,7 @@
     </table>
   </div>
   {% elif pattern %}
-  <div style="color:#7d8590; font-size:0.85rem;">No channels found matching <span class="font-mono">{{ pattern }}</span>.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No channels found matching <span class="font-mono">{{ pattern }}</span>.</div>
   {% endif %}
 </div>
 {% endblock %}

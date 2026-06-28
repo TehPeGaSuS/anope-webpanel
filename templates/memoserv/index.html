@@ -1,51 +1,65 @@
 {% extends "base.html" %}
 {% block title %}MemoServ — Memos{% endblock %}
 {% block content %}
-<div class="max-w-2xl">
-  <div class="flex items-center justify-between mb-6">
+<div style="max-width:800px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
     <div>
-      <h1 class="text-lg font-semibold text-zinc-100 mb-1">Memos</h1>
-      <p class="text-sm text-zinc-500">Your incoming memos.</p>
+      <div class="page-title">Memos</div>
+      <div class="page-subtitle">Your incoming memos.</div>
     </div>
-    <a href="{{ url_for('memoserv.send') }}"
-       class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs rounded-lg transition-colors">
-      Send memo
-    </a>
+    <a href="{{ url_for('memoserv.send') }}" class="btn btn-primary">Send memo</a>
   </div>
-  {% if result %}
-  <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-    <table class="w-full text-sm">
+
+  {% if memos %}
+  <div class="card">
+    <table class="data-table">
       <thead>
-        <tr class="border-b border-zinc-800">
-          <th class="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide w-10">#</th>
-          <th class="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">From</th>
-          <th class="px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wide">Preview</th>
-          <th class="px-4 py-2.5"></th>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th style="width:120px;">From</th>
+          <th>Date</th>
+          <th></th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-zinc-800">
-        {% for memo in result %}
-        <tr class="group">
-          <td class="px-4 py-3 text-zinc-500 font-mono text-xs">{{ loop.index }}</td>
-          <td class="px-4 py-3 font-mono text-zinc-300">{{ memo.sender or '?' }}</td>
-          <td class="px-4 py-3 text-zinc-500 text-xs truncate max-w-xs">{{ memo.text or memo }}</td>
-          <td class="px-4 py-3 text-right">
-            <span class="flex gap-3 justify-end opacity-0 group-hover:opacity-100">
-              <a href="{{ url_for('memoserv.read', num=loop.index) }}"
-                 class="text-xs text-zinc-500 hover:text-sky-400 transition-colors">read</a>
-              <form method="POST" action="{{ url_for('memoserv.delete') }}" class="inline">
-                <input type="hidden" name="num" value="{{ loop.index }}">
-                <button type="submit" class="text-xs text-zinc-500 hover:text-red-400 transition-colors">delete</button>
+      <tbody>
+        {% for memo in memos %}
+        <tr>
+          <td style="color:var(--text-muted); font-family:'JetBrains Mono',monospace;">
+            {% if memo.unread %}
+            <span style="color:var(--accent); font-weight:700;">{{ memo.num }}</span>
+            {% else %}
+            {{ memo.num }}
+            {% endif %}
+          </td>
+          <td class="font-mono" style="color:{% if memo.unread %}var(--accent){% else %}var(--text){% endif %}; font-weight:{% if memo.unread %}600{% else %}400{% endif %};">
+            {{ memo.sender }}
+          </td>
+          <td style="color:var(--text-muted); font-size:0.85rem;">{{ memo.date }}</td>
+          <td style="text-align:right;">
+            <div style="display:flex; gap:0.4rem; justify-content:flex-end;">
+              <a href="{{ url_for('memoserv.read', num=memo.num) }}" class="btn btn-secondary">Read</a>
+              <form method="POST" action="{{ url_for('memoserv.delete') }}" style="display:inline;">
+                <input type="hidden" name="num" value="{{ memo.num }}">
+                <button type="submit" class="btn btn-danger">Delete</button>
               </form>
-            </span>
+            </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+
+  <div style="margin-top:1rem; text-align:right;">
+    <form method="POST" action="{{ url_for('memoserv.delete') }}">
+      <input type="hidden" name="num" value="ALL">
+      <button type="submit" class="btn btn-danger"
+              onclick="return confirm('Delete all memos?')">Delete all</button>
+    </form>
+  </div>
+
   {% else %}
-  <div class="text-sm text-zinc-500">No memos.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No memos.</div>
   {% endif %}
 </div>
 {% endblock %}
