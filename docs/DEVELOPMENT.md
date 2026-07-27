@@ -176,6 +176,17 @@ account happens to be set to — this codebase has shipped the same class
 of bug (parser silently returns zero rows, or worse, garbled data) many
 times by only checking one.
 
+**Dates render in a second format depending on the account's language
+setting, independent of layout.** A blank/default-language account gets
+C-style ctime dates (`"Mon Jul 27 11:28:43 2026"`); an `en_US.UTF-8`
+account gets a 12-hour/AM-PM form with a variable timezone abbreviation
+(`"Mon 07 Mar 2016 01:20:00 AM CET"`). Both are anchored in the shared
+`DATE_RE` constant in `utils.py`, used by every FIXED-layout parser —
+fixing it there covers all of them at once. Worth remembering since a
+FIXED-layout account with a real language set (common for real users,
+uncommon for freshly-created test accounts) can silently break date
+parsing in a way layout-only testing won't catch.
+
 **Anope's LIST-family commands need explicit glob patterns.** `NickServ
 LIST`, `ChanServ LIST`, `HostServ LIST`, `OperServ CHANLIST`, and
 `OperServ USERLIST` all require a wildcarded pattern to do a substring

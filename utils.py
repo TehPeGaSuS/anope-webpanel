@@ -1,9 +1,22 @@
 import re
 
-# Anope's C-style ctime date format, e.g. "Mon Jul 27 11:28:43 2026".
-# Used to anchor FIXED/MONOSPACE column parsing instead of ambiguous .+? matching,
-# since trailing description/reason text in those layouts isn't wrapped in parens.
-DATE_RE = r'[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{1,2}:\d{2}:\d{2}\s+\d{4}'
+# Anope renders dates in (at least) two real formats, and which one shows
+# up depends on the ACCOUNT'S LANGUAGE SETTING, not on layout or Anope
+# version — confirmed live against real prod-imported accounts:
+#   - blank/default language: C-style ctime, "Mon Jul 27 11:28:43 2026"
+#   - language en_US.UTF-8:   "Mon 07 Mar 2016 01:20:00 AM CET" (weekday,
+#     day, month, year, 12h time, AM/PM, then a variable timezone
+#     abbreviation - CET/CEST/UTC/etc. depending on the account's Location)
+# Every disposable test account created this session defaulted to blank
+# language, so this second format was never exercised until real
+# prod-imported accounts (en_US.UTF-8) surfaced it as "access lists don't
+# show up" for FIXED-layout accounts. Both forms must be anchored here
+# since trailing description/reason text in FIXED layout isn't wrapped in
+# parens, so a generic .+? can't tell where the date ends.
+DATE_RE = (
+    r'(?:[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{1,2}:\d{2}:\d{2}\s+\d{4}'
+    r'|[A-Za-z]{3}\s+\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s+\d{1,2}:\d{2}:\d{2}\s+[AP]M\s+[A-Za-z]{2,5})'
+)
 
 
 def strip_irc(text):
