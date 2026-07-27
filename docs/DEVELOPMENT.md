@@ -284,10 +284,6 @@ actively re-syncs bans it manages. There's no direct Anope command for
   a DNS TXT record and Anope verifying it via live lookup — an
   out-of-band step the panel can't assist with. Users can validate from
   IRC once their TXT record propagates.
-- **Chanstats** (`SET CHANSTATS`/`GSTATS`/`TOP10`/`GTOP10`) reply formats
-  were taken from Anope source rather than fully verified against a
-  populated live dataset — re-check parsers if results look off on your
-  instance.
 - **OperServ Sessions / EXCEPTION list** show raw output only, not parsed
   into a table.
 - Not yet exposed: `CONFIG`/`MODINFO`/`MODLIST`/`MODLOAD`/`MODRELOAD`/
