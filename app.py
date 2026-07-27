@@ -90,11 +90,17 @@ def create_app():
     # ---------- Error handlers ----------
     @app.errorhandler(404)
     def not_found(e):
-        return "404 Not Found", 404
+        return render_template(
+            "error.html", code=404, title="Page Not Found",
+            message="The page you're looking for doesn't exist or has moved.",
+        ), 404
 
     @app.errorhandler(500)
     def server_error(e):
-        return "500 Internal Server Error", 500
+        return render_template(
+            "error.html", code=500, title="Something Went Wrong",
+            message="An unexpected error occurred. Please try again, or contact an operator if it persists.",
+        ), 500
 
     return app
 
