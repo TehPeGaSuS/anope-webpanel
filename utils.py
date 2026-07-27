@@ -1353,3 +1353,75 @@ def parse_os_forbid_list(lines):
                 "reason":  m.group(5).strip(),
             })
     return entries
+
+
+def parse_os_session_list(lines):
+    """
+    Parses OperServ SESSION LIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — both branches verified live
+    against real connections on testnet.
+      FLEXIBLE (confirmed live):
+        "Hosts with at least 2 sessions:"
+        "127.0.0.1: 2 sessions"
+      FIXED (confirmed live):
+        "Hosts with at least 2 sessions:"
+        "Session  Host"
+        "2        127.0.0.1"
+    """
+    pattern_flexible = re.compile(r'^(\S+):\s+(\d+)\s+sessions$')
+    pattern_fixed = re.compile(r'^(\d+)\s+(\S+)$')
+    entries = []
+    for line in lines:
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('hosts', 'session', 'invalid', 'no'):
+            continue
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({"host": m.group(1), "count": m.group(2)})
+            continue
+        m = pattern_fixed.match(line)
+        if m:
+            entries.append({"host": m.group(2), "count": m.group(1)})
+    return entries
+
+
+def parse_os_exception_list(lines):
+    """
+    Parses OperServ EXCEPTION LIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — both branches verified live
+    against a real test exception added on testnet.
+      FLEXIBLE (confirmed live):
+        "Current Session Limit Exception list:"
+        "1: *.example.com -- 5 sessions (test session exception reason)"
+      FIXED (confirmed live):
+        "Current Session Limit Exception list:"
+        "Number  Limit  Mask           Reason"
+        "1       5      *.example.com  test session exception reason"
+    """
+    pattern_flexible = re.compile(r'^(\d+):\s+(\S+)\s+--\s+(\d+)\s+sessions\s+\((.+)\)$')
+    pattern_fixed = re.compile(r'^(\d+)\s+(\d+)\s+(\S+)\s+(.+)$')
+    entries = []
+    for line in lines:
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('current', 'number', 'the', 'no'):
+            continue
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "num": m.group(1), "mask": m.group(2),
+                "limit": m.group(3), "reason": m.group(4).strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
+        if m:
+            entries.append({
+                "num": m.group(1), "limit": m.group(2),
+                "mask": m.group(3), "reason": m.group(4).strip(),
+            })
+    return entries

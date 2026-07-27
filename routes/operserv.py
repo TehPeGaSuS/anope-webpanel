@@ -3,7 +3,8 @@ from rpc import rpc, AnopeError
 from auth import login_required
 from utils import (parse_akill_view, parse_os_userlist, parse_os_chanlist,
                    parse_os_oper_list, parse_os_ignore_list, parse_os_news_list,
-                   parse_os_forbid_list, as_search_mask, as_userlist_mask)
+                   parse_os_forbid_list, parse_os_session_list, parse_os_exception_list,
+                   as_search_mask, as_userlist_mask)
 
 bp = Blueprint("operserv", __name__, url_prefix="/operserv")
 
@@ -70,16 +71,67 @@ def akill_del():
     return redirect(url_for("operserv.akill"))
 
 
+# ── Sessions / session-limit exceptions ─────────────────────────────────────
+# SESSION LIST requires a threshold strictly greater than 1 (Anope rejects
+# 1 as "Invalid threshold value") — default to 2 so the page loads with data
+# out of the box instead of the raw error text as if it were a session.
+
 @bp.route("/sessions")
 @login_required
 @oper_required
 def sessions():
+    threshold = request.args.get("threshold", "2").strip() or "2"
     try:
-        result = rpc("anope.command", g.account, "OperServ", "SESSION LIST 1")
+        result = rpc("anope.command", g.account, "OperServ", f"SESSION LIST {threshold}")
+        sessions_ = parse_os_session_list(result)
     except AnopeError as e:
         flash(e.message, "error")
-        result = []
-    return render_template("operserv/sessions.html", result=result)
+        sessions_ = []
+    try:
+        exc_result = rpc("anope.command", g.account, "OperServ", "EXCEPTION LIST")
+        exceptions = parse_os_exception_list(exc_result)
+    except AnopeError as e:
+        flash(e.message, "error")
+        exceptions = []
+    return render_template(
+        "operserv/sessions.html", sessions=sessions_, exceptions=exceptions, threshold=threshold,
+    )
+
+
+@bp.route("/sessions/exception/add", methods=["POST"])
+@login_required
+@oper_required
+def exception_add():
+    mask = request.form.get("mask", "").strip()
+    limit = request.form.get("limit", "").strip()
+    expiry = request.form.get("expiry", "").strip()
+    reason = request.form.get("reason", "").strip()
+    if not mask or not limit or not reason:
+        flash("Mask, limit and reason are required.", "error")
+        return redirect(url_for("operserv.sessions"))
+    cmd = "EXCEPTION ADD"
+    if expiry:
+        cmd += f" +{expiry}"
+    cmd += f" {mask} {limit} {reason}"
+    try:
+        rpc("anope.command", g.account, "OperServ", cmd)
+        flash(f"Session exception added for {mask}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.sessions"))
+
+
+@bp.route("/sessions/exception/del", methods=["POST"])
+@login_required
+@oper_required
+def exception_del():
+    mask = request.form.get("mask", "").strip()
+    try:
+        rpc("anope.command", g.account, "OperServ", f"EXCEPTION DEL {mask}")
+        flash(f"Session exception removed for {mask}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.sessions"))
 
 
 # ── News ─────────────────────────────────────────────────────────────────────

@@ -131,7 +131,8 @@ offer), oper: All VHosts (list/set/setall/del/delall), Waiting Requests
 (activate/reject), Offer List management (add/del/clear).
 
 ### OperServ
-AKILL, Chankill, Services Ignore List, Sessions, User List + Channel List
+AKILL, Chankill, Services Ignore List, Sessions + session-limit Exceptions
+(parsed tables, threshold control), User List + Channel List
 (both paginated, with search — see Gotchas), Forbid (paginated, searchable,
 NICK/CHAN/EMAIL/PASSWORD/REGISTER), Services Operators (list/add/del),
 Stats, News (LOGONNEWS/OPERNEWS/RANDOMNEWS), Seen, Force Mode, Noop, Jupe,
@@ -295,6 +296,22 @@ reason, in both FIXED and FLEXIBLE layout. `parse_hs_offerlist()` has to
 try both shapes — don't assume two similarly-named commands share a
 format without checking each independently.
 
+**`OperServ SESSION LIST <threshold>` rejects a threshold of 1** with
+"Invalid threshold value. It must be a valid integer greater than 1." —
+not an error reply, a normal-looking text line (same "failures look like
+success" gotcha above), so a naive caller that doesn't check the text
+will render that message as if it were session data. The panel defaults
+its threshold input to 2.
+
+**Anope oper-privileged commands stay privileged over RPC.**
+`anope.command`'s `CommandSource` is built from the real `NickCore` of
+the account passed in the RPC call (`rpc_user.cpp`), so Anope's own
+permission checks (e.g. `nickserv/suspend`, `operserv/session`) apply
+exactly as if that account ran the command from IRC — there's no RPC-side
+bypass. A non-oper account can't be granted a privileged action just by
+having the panel call it on their behalf; that would need a real,
+separately-provisioned service oper account in `opers.conf`.
+
 ---
 
 ## Known limitations / roadmap
@@ -303,16 +320,11 @@ format without checking each independently.
   a DNS TXT record and Anope verifying it via live lookup — an
   out-of-band step the panel can't assist with. Users can validate from
   IRC once their TXT record propagates.
-- **OperServ Sessions / EXCEPTION list** show raw output only, not parsed
-  into a table.
 - Not yet exposed: `CONFIG`/`MODINFO`/`MODLIST`/`MODLOAD`/`MODRELOAD`/
   `MODUNLOAD`/`LOGSEARCH`/`DEFCON`/`SNLINE`/`SQLINE`/`SVSNICK`/`SVSJOIN`/
   `SVSPART`/`KICK`/`KILL` — lower-value or higher-risk admin commands.
 - **MemoServ channel memos** (`MS LIST #channel`) not yet built — would
   want its own view under the channel's ChanServ context.
-- NickServ SUSPEND/UNSUSPEND from the self-service side (oper-side exists
-  via Nick List management).
-- Error pages (404/500) use plain text rather than the panel's styling.
 - No CSRF protection yet — flagged here deliberately, see the README's
   Security section.
 

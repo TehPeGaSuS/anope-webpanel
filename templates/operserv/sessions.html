@@ -1,18 +1,90 @@
 {% extends "base.html" %}
 {% block title %}OperServ — Sessions{% endblock %}
 {% block content %}
-<div style="max-width:900px;">
+<div style="max-width:1000px;">
   <div class="mb-5">
     <div class="page-title">Sessions</div>
-    <div class="page-subtitle">Hosts with multiple connections.</div>
+    <div class="page-subtitle">Hosts with multiple simultaneous connections, and per-host session limit exceptions.</div>
   </div>
-  <div class="card p-4">
-    {% if result %}
-    {% for line in result %}
-    <div class="font-mono" style="font-size:0.82rem; color:var(--text); padding:0.2rem 0;">{{ line }}</div>
-    {% endfor %}
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Active Sessions</div>
+    <form method="GET" action="{{ url_for('operserv.sessions') }}" class="flex gap-2 flex-wrap mb-4">
+      <input type="number" name="threshold" min="2" value="{{ threshold }}" placeholder="Min sessions"
+             class="form-input" style="max-width:160px;">
+      <button type="submit" class="btn btn-secondary">Refresh</button>
+    </form>
+
+    {% if sessions %}
+    <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Host</th>
+          <th>Sessions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td class="font-mono" style="color:var(--text);">{{ s.host }}</td>
+          <td class="font-mono" style="color:var(--text-muted);">{{ s.count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
     {% else %}
-    <div style="color:var(--text-muted); font-size:0.85rem;">No session data.</div>
+    <div style="color:var(--text-muted); font-size:0.85rem;">No hosts with at least {{ threshold }} sessions.</div>
+    {% endif %}
+  </div>
+
+  <div class="card p-4">
+    <div class="section-title">Session Limit Exceptions</div>
+    <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">
+      Hostmasks exempt from the network's default session limit. Real hostmasks only — not matched against nicks or idents.
+    </p>
+    <form method="POST" action="{{ url_for('operserv.exception_add') }}" class="flex gap-2 flex-wrap mb-4">
+      <input type="text" name="mask" placeholder="*.example.com" required class="form-input font-mono" style="max-width:200px;">
+      <input type="text" name="limit" placeholder="Limit" required class="form-input" style="max-width:100px;">
+      <input type="text" name="expiry" placeholder="Expiry (opt.)" class="form-input" style="max-width:120px;">
+      <input type="text" name="reason" placeholder="Reason" required class="form-input" style="flex:1; min-width:160px;">
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+
+    {% if exceptions %}
+    <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Mask</th>
+          <th>Limit</th>
+          <th>Reason</th>
+          <th style="text-align:right;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in exceptions %}
+        <tr>
+          <td class="font-mono" style="color:var(--text-muted);">{{ e.num }}</td>
+          <td class="font-mono" style="color:var(--text);">{{ e.mask }}</td>
+          <td class="font-mono" style="color:var(--text-muted);">{{ e.limit }}</td>
+          <td style="color:var(--text-muted);">{{ e.reason or '—' }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('operserv.exception_del') }}"
+                  onsubmit="return confirm('Remove exception for {{ e.mask }}?');">
+              <input type="hidden" name="mask" value="{{ e.mask }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div style="color:var(--text-muted); font-size:0.85rem;">No session limit exceptions.</div>
     {% endif %}
   </div>
 </div>
