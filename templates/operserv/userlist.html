@@ -20,6 +20,7 @@
 
   {% if entries %}
   <div class="card">
+    {{ pagination('operserv.userlist', page, total_pages, pattern=pattern) }}
     <div style="overflow-x:auto;">
 <table class="data-table">
       <thead>
