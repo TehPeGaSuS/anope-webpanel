@@ -4,7 +4,7 @@ from rpc import rpc, AnopeError
 from auth import login_required
 from utils import (parse_alist, parse_flags_list, parse_akick_view,
                    parse_cs_info, parse_entrymsg_list, parse_log_list,
-                   parse_drop_code)
+                   parse_drop_code, as_search_mask)
 
 bp = Blueprint("chanserv", __name__, url_prefix="/chanserv")
 
@@ -748,7 +748,7 @@ def cs_list():
     from utils import parse_cs_list
     pattern  = request.args.get("pattern", "*").strip() or "*"
     extra    = request.args.get("extra", "").strip()   # SUSPENDED / NOEXPIRE for opers
-    cmd = f"LIST {pattern}"
+    cmd = f"LIST {as_search_mask(pattern)}"
     if extra:
         cmd += f" {extra}"
     channels = []

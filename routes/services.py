@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, g
 from rpc import rpc, AnopeError
 from auth import login_required
-from utils import parse_memo_list
+from utils import parse_memo_list, as_search_mask
 
 # ---------- MemoServ ----------
 
@@ -307,7 +307,8 @@ def admin():
     pattern = request.args.get("pattern", "").strip()
     entries = []
     try:
-        cmd = f"LIST {pattern}" if pattern else "LIST"
+        mask = as_search_mask(pattern)
+        cmd = f"LIST {mask}" if mask else "LIST"
         result = rpc("anope.command", g.account, "HostServ", cmd)
         entries = parse_hs_list(result)
     except AnopeError as e:

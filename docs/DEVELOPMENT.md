@@ -15,6 +15,50 @@ For install/usage docs, see the [README](../README.md).
 
 ---
 
+## Session Updates (2026-07-27, cont'd) — Search boxes were silently broken on every LIST-family page
+
+Report: "any search, like 'zach' should match any nick... it doesn't
+happen on OS userlist and probably other stuff that has lists." Confirmed
+live and it was worse than just USERLIST — every search box in the app
+that feeds a raw pattern into one of Anope's LIST-family commands
+(NickServ LIST, ChanServ LIST, HostServ LIST, OperServ USERLIST/CHANLIST)
+was silently broken the same way: these commands require an **explicit
+glob pattern** to do a substring match, and a bare typed term matches
+*nothing*.
+
+Confirmed live for each: `ChanServ LIST clitest` against a channel
+literally named `#clitest` → 0 matches; `ChanServ LIST *clitest*` → 1
+match. Same story for `NickServ LIST`, `OperServ CHANLIST`, and
+`OperServ USERLIST` (which additionally needs the *whole* pattern shaped
+like `nick!user@host[#realname]`, not just wildcarded — bare
+`USERLIST claudetest` → 0 users, `USERLIST *claudetest*!*@*` → found).
+Every one of these search boxes has presumably returned "no results" for
+every real user's every real search since the feature was first written —
+this wasn't a regression from anything done this session, it's been
+broken from day one.
+
+Fixed with two new helpers in `utils.py`:
+- `as_search_mask(term)` — wraps a bare term as `*term*`; passes through
+  untouched if it already contains a glob char, starts with `/` (regex
+  delimiter), or starts with `#` (Anope's "#X-Y" range syntax for these
+  commands). Used by NickServ LIST, ChanServ LIST, HostServ LIST (oper),
+  and OperServ CHANLIST.
+- `as_userlist_mask(term)` — same idea but shaped for USERLIST's stricter
+  `nick!user@host[#realname]` requirement: a bare term becomes
+  `*term*!*@*` (nick substring search, the common case); passes through
+  untouched if it already contains `!`/`@` (a hand-written mask) or starts
+  with `#` (a channel target — `USERLIST #channel` lists that channel's
+  members and must not be touched).
+
+The raw `pattern` the user typed is still what's echoed back into the
+search box (not the wrapped mask) — only the string sent to Anope changes.
+Verified live for all five routes: bare substring terms now find real
+matches, explicit wildcard patterns and channel targets still pass
+through unchanged, and an empty search still returns the full unfiltered
+list.
+
+---
+
 ## Session Updates (2026-07-27, cont'd) — Full responsive pass
 
 A "wait, is any of this actually responsive?" question turned out to have

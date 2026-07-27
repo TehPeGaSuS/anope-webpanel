@@ -11,6 +11,41 @@ def strip_irc(text):
     return re.sub(r'[](?:\d{1,2}(?:,\d{1,2})?)?', '', text)
 
 
+def as_search_mask(term):
+    """
+    Anope's LIST-family commands (NickServ/ChanServ/HostServ LIST, OperServ
+    CHANLIST) require an explicit glob pattern to do a substring match —
+    confirmed live: `LIST clitest` against a channel actually named
+    "#clitest" returns 0 matches, `LIST *clitest*` finds it. A bare search
+    box term is useless without this. Auto-wraps plain terms in `*...*`;
+    anything that already looks deliberate (a glob char, a `//regex/`
+    pattern, or a `#X-Y` range) is passed through untouched.
+    """
+    term = term.strip()
+    if not term or term.startswith('#') or term.startswith('/'):
+        return term
+    if '*' in term or '?' in term:
+        return term
+    return f"*{term}*"
+
+
+def as_userlist_mask(term):
+    """
+    OperServ USERLIST's pattern must be the full `nick!user@host[#realname]`
+    shape (confirmed live: bare `USERLIST claudetest` returns 0 users,
+    `USERLIST *claudetest*!*@*` finds them) — a different shape than the
+    other LIST commands, so it gets its own wrapper. A bare term is treated
+    as a nick substring search. Channel targets (`#channel`) and anything
+    that already contains mask structure are passed through untouched.
+    """
+    term = term.strip()
+    if not term or term.startswith('#') or '!' in term or '@' in term:
+        return term
+    if '*' in term or '?' in term:
+        return term
+    return f"*{term}*!*@*"
+
+
 def parse_alist(lines):
     """
     Handles all three NickServ layout formats (FLEXIBLE, FIXED, MONOSPACE).

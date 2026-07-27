@@ -3,7 +3,7 @@ from rpc import rpc, AnopeError
 from auth import login_required
 from utils import (parse_akill_view, parse_os_userlist, parse_os_chanlist,
                    parse_os_oper_list, parse_os_ignore_list, parse_os_news_list,
-                   parse_os_forbid_list)
+                   parse_os_forbid_list, as_search_mask, as_userlist_mask)
 
 bp = Blueprint("operserv", __name__, url_prefix="/operserv")
 
@@ -186,7 +186,8 @@ def seen():
 def userlist():
     pattern = request.args.get("pattern", "").strip()
     page = max(1, int(request.args.get("page", 1)))
-    cmd = f"USERLIST {pattern}" if pattern else "USERLIST"
+    mask = as_userlist_mask(pattern)
+    cmd = f"USERLIST {mask}" if mask else "USERLIST"
     try:
         result = rpc("anope.command", g.account, "OperServ", cmd)
         entries = parse_os_userlist(result)
@@ -208,7 +209,8 @@ def userlist():
 @oper_required
 def chanlist():
     pattern = request.args.get("pattern", "").strip()
-    cmd = f"CHANLIST {pattern}" if pattern else "CHANLIST"
+    mask = as_search_mask(pattern)
+    cmd = f"CHANLIST {mask}" if mask else "CHANLIST"
     try:
         result = rpc("anope.command", g.account, "OperServ", cmd)
         entries = parse_os_chanlist(result)

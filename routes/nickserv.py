@@ -517,11 +517,11 @@ def drop():
 @bp.route("/list")
 @login_required
 def ns_list():
-    from utils import parse_ns_list
+    from utils import parse_ns_list, as_search_mask
     pattern = request.args.get("pattern", "*").strip() or "*"
     entries = []
     try:
-        result = rpc("anope.command", g.account, "NickServ", f"LIST {pattern}")
+        result = rpc("anope.command", g.account, "NickServ", f"LIST {as_search_mask(pattern)}")
         entries = parse_ns_list(result)
     except AnopeError as e:
         flash(e.message, "error")
