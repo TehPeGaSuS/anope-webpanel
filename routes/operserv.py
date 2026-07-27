@@ -2,7 +2,8 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from rpc import rpc, AnopeError
 from auth import login_required
 from utils import (parse_akill_view, parse_os_userlist, parse_os_chanlist,
-                   parse_os_oper_list, parse_os_ignore_list, parse_os_news_list)
+                   parse_os_oper_list, parse_os_ignore_list, parse_os_news_list,
+                   parse_os_forbid_list)
 
 bp = Blueprint("operserv", __name__, url_prefix="/operserv")
 
@@ -184,6 +185,7 @@ def seen():
 @oper_required
 def userlist():
     pattern = request.args.get("pattern", "").strip()
+    page = max(1, int(request.args.get("page", 1)))
     cmd = f"USERLIST {pattern}" if pattern else "USERLIST"
     try:
         result = rpc("anope.command", g.account, "OperServ", cmd)
@@ -191,7 +193,14 @@ def userlist():
     except AnopeError as e:
         flash(e.message, "error")
         entries = []
-    return render_template("operserv/userlist.html", entries=entries, pattern=pattern)
+    per_page = 100
+    total = len(entries)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    start = (page - 1) * per_page
+    entries_page = entries[start:start + per_page]
+    return render_template("operserv/userlist.html", entries=entries_page, pattern=pattern,
+                           page=page, total_pages=total_pages, total=total)
 
 
 @bp.route("/chanlist")
@@ -207,6 +216,69 @@ def chanlist():
         flash(e.message, "error")
         entries = []
     return render_template("operserv/chanlist.html", entries=entries, pattern=pattern)
+
+
+# ── Forbid ───────────────────────────────────────────────────────────────────
+
+FORBID_TYPES = ("NICK", "CHAN", "EMAIL", "PASSWORD", "REGISTER")
+
+
+@bp.route("/forbid")
+@login_required
+@oper_required
+def forbid():
+    ftype = request.args.get("type", "NICK").upper()
+    if ftype not in FORBID_TYPES:
+        ftype = "NICK"
+    page = max(1, int(request.args.get("page", 1)))
+    try:
+        result = rpc("anope.command", g.account, "OperServ", f"FORBID LIST {ftype}")
+        entries = parse_os_forbid_list(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+        entries = []
+    per_page = 100
+    total = len(entries)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    start = (page - 1) * per_page
+    entries_page = entries[start:start + per_page]
+    return render_template("operserv/forbid.html", entries=entries_page, ftype=ftype,
+                           types=FORBID_TYPES, page=page, total_pages=total_pages, total=total)
+
+
+@bp.route("/forbid/add", methods=["POST"])
+@login_required
+@oper_required
+def forbid_add():
+    ftype = request.form.get("type", "").upper()
+    entry = request.form.get("entry", "").strip()
+    expiry = request.form.get("expiry", "").strip()
+    reason = request.form.get("reason", "").strip()
+    if ftype not in FORBID_TYPES or not entry or not reason:
+        flash("Type, entry, and reason are required.", "error")
+        return redirect(url_for("operserv.forbid", type=ftype))
+    prefix = f"+{expiry} " if expiry else ""
+    try:
+        result = rpc("anope.command", g.account, "OperServ", f"FORBID ADD {ftype} {prefix}{entry} {reason}")
+        flash(result[0] if result else "Forbid added.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.forbid", type=ftype))
+
+
+@bp.route("/forbid/del", methods=["POST"])
+@login_required
+@oper_required
+def forbid_del():
+    ftype = request.form.get("type", "").upper()
+    entry = request.form.get("entry", "").strip()
+    try:
+        rpc("anope.command", g.account, "OperServ", f"FORBID DEL {ftype} {entry}")
+        flash(f"{entry} un-forbidden.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.forbid", type=ftype))
 
 
 # ── Services operators ──────────────────────────────────────────────────────

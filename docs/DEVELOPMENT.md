@@ -15,6 +15,84 @@ For install/usage docs, see the [README](../README.md).
 
 ---
 
+## Session Updates (2026-07-27, cont'd) — Paginated User List, new OperServ FORBID page, HostServ OFFERLIST reason bug
+
+- **OperServ USERLIST paginated.** `routes/operserv.py`'s `userlist()` now slices
+  results 100/page instead of dumping the whole (potentially huge) list
+  server-side. New reusable `templates/_pagination.html` Jinja macro (a `{%
+  macro pagination(endpoint, page, total_pages) %}` that forwards arbitrary
+  extra query params via Jinja's `**kwargs`), modeled on the pagination
+  block already proven in `templates/chanserv/modes.html`. Verified live by
+  temporarily dropping `per_page` to 3 via `sed`, confirming page 1/2 show
+  distinct entries and an out-of-range page (99) clamps to the last valid
+  page instead of erroring, then reverting to 100.
+
+- **New: OperServ FORBID page** (`routes/operserv.py`: `forbid()` /
+  `forbid_add()` / `forbid_del()`, `templates/operserv/forbid.html`). This
+  command was entirely missing from the panel despite being core OperServ
+  functionality. Notes:
+  - `FORBID LIST` requires a type argument (no "all types" mode per `HELP
+    FORBID`) — the page has a NICK/CHAN/EMAIL/PASSWORD/REGISTER tab
+    selector.
+  - New parser `parse_os_forbid_list()` in `utils.py`, verified against
+    real live data in **both** layouts from the start (lesson learned from
+    the LOGONNEWS incident — see below): FIXED is a straight column table;
+    FLEXIBLE is always `"mask on TYPE -- created by CREATOR; expires in
+    <Never|date> (reason)"` — note FORBID's flexible phrasing is always
+    "expires **in**", even for an absolute/Never expiry, unlike other
+    commands that switch between "expires in" (relative) / "expires on"
+    (absolute).
+  - Entries loaded via Anope's file-based bulk-import (`os_forbid`
+    module's `file{}` config block — see below) show the config file path
+    as their Creator and **cannot be deleted** via `FORBID DEL` (Anope
+    rejects it). The template detects this by checking for `/` in the
+    Creator field (real nicks never contain one) and shows a disabled
+    "from file" label instead of a Delete button. Verified against the
+    live 300-entry EMAIL forbid list (see below) — every row correctly
+    shows as non-deletable.
+  - Uses the same pagination macro as USERLIST.
+
+- **Loaded a real 300-entry EMAIL forbid list on testnet** to get
+  realistic pagination data, using Anope's **built-in file-based FORBID
+  bulk import** (`os_forbid` module's `file { type = "email"; file =
+  "..."; reason = "..."; }` config block in `operserv.conf`) rather than
+  ~300 sequential RPC calls. Source: first 300 domains from
+  `disposable-email-domains/disposable-email-domains`'s blocklist,
+  transformed to Anope's `*@domain` mask format. One gotcha hit and fixed:
+  relative `file =` paths in this config block resolve against **`conf/`**
+  (via `Anope::ExpandConfig`), not `data/` — first attempt put the file in
+  `data/` and got a live "Unable to read conf/disposable_emails.txt,
+  ignoring." log error until moved. Also confirmed a real Anope-side
+  constraint: `FORBID LIST` itself caps output at ~300 entries per call
+  regardless of how many exist ("End of forbid list - 300/302 entries
+  shown") — panel pagination only slices what Anope already returned, it
+  can't work around this upstream cap.
+
+- **`parse_hs_offerlist` FLEXIBLE bug found while spot-checking HS OFFER
+  after the FORBID work** (not the original "HS OFFER missing on prod"
+  report — that one was the earlier FLEXIBLE-audit fix; this is a second,
+  narrower bug in the same parser found while re-verifying it live
+  end-to-end through the app for the first time). The FLEXIBLE branch was
+  swallowing an optional trailing `(reason)` into one opaque "trailer"
+  string with no reason extracted, e.g. live output `"1: x / x -- expires
+  in 1 day (expiring offer reason)"` rendered as a single blob instead of
+  splitting into expiry + reason like the FIXED branch already did.
+  Fixed `pattern_flexible` to anchor on the known expiry phrases
+  (`does not expire` / `expires in|on ...`) with an optional trailing
+  `(reason)` group, matching the FIXED branch's `"expires — reason"`
+  output shape so both layouts render identically. Verified live in both
+  a no-reason and a with-reason case, plus a FIXED-layout regression
+  check (unchanged).
+
+**Process note, reaffirmed**: every parser touched or added this session —
+`parse_os_forbid_list` from scratch, `parse_hs_offerlist`'s fix — was
+checked against real captured output in **both** FIXED and FLEXIBLE before
+being called done, including a full page load through the actual running
+app, not just a standalone parser unit test. That's now the bar for any
+future parser work, not just an aspiration.
+
+---
+
 ## Session Updates (2026-07-27, cont'd) — LOGONNEWS "missing" on production → discovered the whole earlier parser audit was FIXED-only, 14 more fixes
 
 A production report ("LOGONNEWS list shows nothing") turned into the most
@@ -757,9 +835,10 @@ session's notes). What's left is genuinely the long tail:
 
 ### OperServ
 - ~~CHANKILL / IGNORE list / JUPE / MODE / NOOP / OPER list / RELOAD / UPDATE / QUIT / SHUTDOWN / STATS / USERLIST / CHANLIST / SEEN~~ ✅ done — see Session Updates
+- ~~FORBID~~ ✅ done — see Session Updates
 - SNO (snomask management) — not implemented; this is IRCd-level umode +s <flags>, not an Anope OperServ command, so it doesn't belong on this page. Would need a separate UnrealIRCd-facing feature if wanted.
 - Sessions / EXCEPTION list still shows raw output only — not parsed into a table
-- CONFIG / MODINFO / MODLIST / MODLOAD / MODRELOAD / MODUNLOAD / LOGSEARCH / DEFCON / FORBID / SNLINE / SQLINE / SVSNICK / SVSJOIN / SVSPART / KICK / KILL — lower-value or higher-risk admin commands not yet exposed
+- CONFIG / MODINFO / MODLIST / MODLOAD / MODRELOAD / MODUNLOAD / LOGSEARCH / DEFCON / SNLINE / SQLINE / SVSNICK / SVSJOIN / SVSPART / KICK / KILL — lower-value or higher-risk admin commands not yet exposed
 
 ### General
 - README.md for Anope devs pitch (install instructions, modules.conf snippet, screenshots)

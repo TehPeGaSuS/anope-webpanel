@@ -1,10 +1,16 @@
 {% extends "base.html" %}
+{% from "_pagination.html" import pagination %}
 {% block title %}OperServ — User List{% endblock %}
 {% block content %}
 <div style="max-width:1000px;">
-  <div class="mb-5">
-    <div class="page-title">User List</div>
-    <div class="page-subtitle">All users currently online.</div>
+  <div class="mb-5 flex items-center justify-between">
+    <div>
+      <div class="page-title">User List</div>
+      <div class="page-subtitle">All users currently online.</div>
+    </div>
+    {% if total %}
+    <div style="font-size:0.8rem; color:var(--text-muted);">{{ total }} user{{ 's' if total != 1 }}</div>
+    {% endif %}
   </div>
 
   <form method="GET" class="card mb-5 p-4 flex gap-2">
@@ -32,6 +38,7 @@
         {% endfor %}
       </tbody>
     </table>
+    {{ pagination('operserv.userlist', page, total_pages, pattern=pattern) }}
   </div>
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No users found.</div>

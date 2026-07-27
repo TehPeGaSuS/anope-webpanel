@@ -829,11 +829,16 @@ def parse_hs_offerlist(lines):
       FLEXIBLE (confirmed live):
         "Current host offer list:"
         "1: users/{account} / users/claudetest3 -- does not expire"
+        "2: test2.x / test2.x -- expires in 1 day (expiring offer reason)"
         "End of host offer list."
     Expires is anchored on its known phrases (like OperServ's ignore list)
     since it's followed by an unlabeled free-text Reason column in FIXED.
+    FLEXIBLE puts an optional reason in trailing parens after the expiry
+    phrase — split it out so both layouts render identically.
     """
-    pattern_flexible = re.compile(r'^(\d+):\s+(\S+)\s+/\s+(\S+)\s+--\s+(.+)$')
+    pattern_flexible = re.compile(
+        r'^(\d+):\s+(\S+)\s+/\s+(\S+)\s+--\s+(does not expire|expires (?:in|on) .+?)(?:\s+\((.+)\))?$'
+    )
     pattern_fixed = re.compile(
         r'^(\d+)\s+(\S+)\s+(\S+)\s+(does not expire|expires (?:in|on) \S.*?)(?:\s{2,}(.+))?$'
     )
@@ -847,11 +852,13 @@ def parse_hs_offerlist(lines):
             continue
         m = pattern_flexible.match(line)
         if m:
+            expires = m.group(4).strip()
+            reason = (m.group(5) or "").strip()
             entries.append({
                 "num":     m.group(1),
                 "offered": m.group(2),
                 "yours":   m.group(3),
-                "trailer": m.group(4).strip(),
+                "trailer": f"{expires} — {reason}" if reason else expires,
             })
             continue
         m = pattern_fixed.match(line)
@@ -1209,5 +1216,62 @@ def parse_cs_top(lines):
                 "lines":   int(m.group(5)),
                 "smileys": int(m.group(6)),
                 "actions": int(m.group(7)),
+            })
+    return entries
+
+
+def parse_os_forbid_list(lines):
+    """
+    Parses OperServ FORBID LIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — both branches verified live
+    from the start (lesson learned from the LOGONNEWS incident).
+      FIXED (confirmed live):
+        "Forbid list:"
+        "Mask      Type  Creator  Expires                   Reason"
+        "badnick*  NICK  PeGaSuS  Wed Aug 26 19:35:11 2026  test reason here"
+        "#badchan  CHAN  PeGaSuS  Never                      permanent test"
+        "End of forbid list."
+      FLEXIBLE (confirmed live):
+        "Forbid list:"
+        "badnick* on NICK -- created by PeGaSuS; expires in Wed Aug 26 19:35:11 2026 (test reason here)"
+        "#badchan on CHAN -- created by PeGaSuS; expires in Never (permanent test)"
+        "End of forbid list."
+    Note FORBID's flexible phrasing is always "expires in ..." (even for an
+    absolute date), unlike other commands that switch between "expires in"
+    (relative) and "expires on" (absolute) — anchored on that literal
+    phrase rather than reusing the "in|on" alternation used elsewhere.
+    """
+    pattern_flexible = re.compile(
+        rf'^(\S+)\s+on\s+(\S+)\s+--\s+created by\s+(\S+);\s+expires in\s+(Never|{DATE_RE})(?:\s+\((.+)\))?$'
+    )
+    pattern_fixed = re.compile(
+        rf'^(\S+)\s+(\S+)\s+(\S+)\s+(Never|{DATE_RE})\s+(.+)$'
+    )
+    entries = []
+    for line in lines:
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('forbid', 'mask', 'end'):
+            continue
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "mask":    m.group(1),
+                "type":    m.group(2),
+                "creator": m.group(3),
+                "expires": m.group(4).strip(),
+                "reason":  (m.group(5) or "").strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
+        if m:
+            entries.append({
+                "mask":    m.group(1),
+                "type":    m.group(2),
+                "creator": m.group(3),
+                "expires": m.group(4).strip(),
+                "reason":  m.group(5).strip(),
             })
     return entries
