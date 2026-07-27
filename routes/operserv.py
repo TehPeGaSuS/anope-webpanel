@@ -230,6 +230,7 @@ def forbid():
     ftype = request.args.get("type", "NICK").upper()
     if ftype not in FORBID_TYPES:
         ftype = "NICK"
+    search = request.args.get("search", "").strip()
     page = max(1, int(request.args.get("page", 1)))
     try:
         result = rpc("anope.command", g.account, "OperServ", f"FORBID LIST {ftype}")
@@ -237,13 +238,20 @@ def forbid():
     except AnopeError as e:
         flash(e.message, "error")
         entries = []
+    # FORBID LIST takes no mask/search argument (unlike USERLIST/CHANLIST),
+    # so filtering happens here against what Anope already returned.
+    if search:
+        needle = search.lower()
+        entries = [e for e in entries
+                   if needle in e["mask"].lower() or needle in e["creator"].lower()
+                   or needle in e["reason"].lower()]
     per_page = 100
     total = len(entries)
     total_pages = max(1, (total + per_page - 1) // per_page)
     page = min(page, total_pages)
     start = (page - 1) * per_page
     entries_page = entries[start:start + per_page]
-    return render_template("operserv/forbid.html", entries=entries_page, ftype=ftype,
+    return render_template("operserv/forbid.html", entries=entries_page, ftype=ftype, search=search,
                            types=FORBID_TYPES, page=page, total_pages=total_pages, total=total)
 
 

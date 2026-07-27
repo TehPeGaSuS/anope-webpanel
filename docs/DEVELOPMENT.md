@@ -15,6 +15,39 @@ For install/usage docs, see the [README](../README.md).
 
 ---
 
+## Session Updates (2026-07-27, cont'd) — Forbid search, top pagination, table-overflow fix
+
+- **Fixed a real layout bug on the FORBID page**: neither `.card` nor
+  `.data-table` constrained width or wrapped long content, so a long
+  unbroken string in Mask/Creator/Reason (e.g. a long domain, or a
+  descriptive reason) could push the table wider than its card and spill
+  out past the container instead of wrapping. Fixed with `table-layout:
+  fixed` + explicit `<colgroup>` column widths, `word-break: break-word`
+  on the three free-text columns, and an `overflow-x: auto` wrapper around
+  the table as a fallback for anything that still doesn't fit. Verified
+  live with a real long mask (`*@zzzzzzzzzzzzzz-7619.dynv6.net`) and a long
+  reason string.
+- **Added search/filter to the FORBID page** (`?search=`). Anope's `FORBID
+  LIST` takes no mask/pattern argument — confirmed via `HELP FORBID`, only
+  a type — so this filters server-side in Python against whatever Anope
+  already returned (substring match, case-insensitive, across mask/
+  creator/reason) before pagination is applied. Most useful on the EMAIL
+  type with the 300-entry disposable-domains list loaded. Verified live:
+  a broad term correctly matched across all three fields (including a
+  case where "mail" false-positived by matching literally inside the
+  file-import Creator path `conf/disposable_emails.txt` — not a bug, just
+  a reminder the search is genuinely substring-across-all-fields, not
+  mask-only), and a specific domain substring correctly narrowed 300
+  entries down to 1.
+- **Added a second pagination bar above the table**, not just below it —
+  same macro, same params, now also showing a "Page X of Y" label. Applies
+  to both USERLIST and FORBID (they share `_pagination.html`). The macro
+  now renders a `border-bottom` unconditionally so the top instance reads
+  as a divider from the table; harmless at the bottom instance too (reads
+  as a divider from empty space before the card's rounded corner).
+
+---
+
 ## Session Updates (2026-07-27, cont'd) — Paginated User List, new OperServ FORBID page, HostServ OFFERLIST reason bug
 
 - **OperServ USERLIST paginated.** `routes/operserv.py`'s `userlist()` now slices

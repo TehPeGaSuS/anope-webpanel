@@ -34,9 +34,28 @@
     </form>
   </div>
 
+  <form method="GET" class="card mb-5 p-4 flex gap-2">
+    <input type="hidden" name="type" value="{{ ftype }}">
+    <input type="text" name="search" value="{{ search }}" placeholder="Search mask, creator, or reason" class="form-input">
+    <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Search</button>
+    {% if search %}
+    <a href="{{ url_for('operserv.forbid', type=ftype) }}" class="btn btn-secondary" style="white-space:nowrap;">Clear</a>
+    {% endif %}
+  </form>
+
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    {{ pagination('operserv.forbid', page, total_pages, type=ftype, search=search) }}
+    <div style="overflow-x:auto;">
+    <table class="data-table" style="table-layout:fixed; width:100%;">
+      <colgroup>
+        <col style="width:22%;">
+        <col style="width:8%;">
+        <col style="width:18%;">
+        <col style="width:16%;">
+        <col style="width:26%;">
+        <col style="width:10%;">
+      </colgroup>
       <thead>
         <tr>
           <th>Mask</th>
@@ -50,13 +69,13 @@
       <tbody>
         {% for e in entries %}
         <tr>
-          <td class="font-mono" style="color:#f85149;">{{ e.mask }}</td>
+          <td class="font-mono" style="color:#f85149; word-break:break-word;">{{ e.mask }}</td>
           <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.type }}</td>
-          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.creator }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem; word-break:break-word;">{{ e.creator }}</td>
           <td style="font-size:0.8rem; {% if e.expires == 'Never' %}color:#f85149;{% else %}color:#d29922;{% endif %}">
             {{ e.expires }}
           </td>
-          <td style="color:var(--text); font-size:0.85rem;">{{ e.reason or '—' }}</td>
+          <td style="color:var(--text); font-size:0.85rem; word-break:break-word;">{{ e.reason or '—' }}</td>
           <td style="text-align:right;">
             {% if '/' in e.creator %}
             <span style="color:var(--text-muted); font-size:0.75rem;" title="Loaded from a config file ({{ e.creator }}), cannot be removed here.">from file</span>
@@ -72,10 +91,11 @@
         {% endfor %}
       </tbody>
     </table>
-    {{ pagination('operserv.forbid', page, total_pages, type=ftype) }}
+    </div>
+    {{ pagination('operserv.forbid', page, total_pages, type=ftype, search=search) }}
   </div>
   {% else %}
-  <div style="color:var(--text-muted); font-size:0.85rem;">No {{ ftype }} forbids.</div>
+  <div style="color:var(--text-muted); font-size:0.85rem;">No {{ ftype }} forbids{{ ' matching "%s"' % search if search }}.</div>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,6 +1,7 @@
 {% macro pagination(endpoint, page, total_pages) %}
 {% if total_pages > 1 %}
-<div style="padding:0.6rem 1rem; display:flex; justify-content:center; gap:0.35rem; flex-wrap:wrap;">
+<div style="padding:0.6rem 1rem; display:flex; justify-content:center; align-items:center; gap:0.35rem; flex-wrap:wrap; border-bottom:1px solid var(--pill-bg);">
+  <span style="color:var(--text-muted); font-size:0.75rem; margin-right:0.35rem;">Page {{ page }} of {{ total_pages }}</span>
   {% if page > 1 %}
   <a href="{{ url_for(endpoint, page=1, **kwargs) }}"
      class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.78rem;">«</a>
