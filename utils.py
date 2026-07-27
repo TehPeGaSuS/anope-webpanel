@@ -312,25 +312,81 @@ def parse_cert_list(lines):
     return certs
 
 
-def parse_akill_view(lines):
+def _parse_fixed_table_by_header(header_line, data_lines):
     """
-    Format: "N: [ID] mask -- created by X on DATE; expires/does not expire (reason)"
+    Generic ListFormatter FIXED-layout parser: slices each data line using
+    the *character offsets* of the header's column names, rather than
+    guessing a per-field regex. Handles columns whose values legitimately
+    contain spaces (e.g. an "Expires" column showing "expires in 7 days"),
+    which a plain `\\S+` per-field regex can't represent. Returns a list of
+    dicts keyed by lowercased header name.
     """
-    pattern = re.compile(
-        r'^\d+:\s+\[\S+\]\s+(\S+)\s+--\s+created by\s+(\S+)\s+on\s+(.+?);\s+(.+?)(?:\s+\((.+)\))?$'
+    cols = [(m.start(), m.group().lower()) for m in re.finditer(r'\S+', header_line)]
+    starts = [c[0] for c in cols]
+    rows = []
+    for line in data_lines:
+        row = {}
+        for i, (start, name) in enumerate(cols):
+            end = starts[i + 1] if i + 1 < len(starts) else None
+            row[name] = (line[start:end] if end else line[start:]).strip()
+        rows.append(row)
+    return rows
+
+
+def parse_xline_view(lines):
+    """
+    Parses OperServ AKILL VIEW / SNLINE VIEW / SQLINE VIEW output — these
+    three commands share the exact same reply shape (all built on the same
+    XLine list machinery, `os_akill.cpp`/`os_sxline.cpp`), confirmed live
+    against real production SQLINE data (17 real entries) plus disposable
+    SNLINE test entries. The `[ID]` field is only present when
+    `operserv:akillids` is enabled (true on this network) — kept optional
+    here so this still works on installs where it's off.
+      FLEXIBLE (confirmed live):
+        "1: [I0MXEDTISB] *puta* -- created by James on Tue Aug 13 16:22:04 2024; does not expire ([James] Nick not allowed)"
+      FIXED (confirmed live):
+        "Number  Mask           Creator  Created                   Expires            ID          Reason"
+        "1       *snlinetest2*  PeGaSuS  Mon Jul 27 22:47:28 2026  expires in 7 days  15Z0YM4J7O  [PeGaSuS] short reason"
+    """
+    pattern_flexible = re.compile(
+        r'^\d+:\s+(?:\[(\S+)\]\s+)?(\S+)\s+--\s+created by\s+(\S+)\s+on\s+(.+?);\s+'
+        r'(does not expire|expires (?:in|on) .+?)(?:\s+\((.+)\))?$'
     )
     entries = []
-    for line in lines:
-        m = pattern.match(line.strip())
+    header_idx = None
+    for i, raw in enumerate(lines):
+        line = strip_irc(raw).strip()
+        if line.lower().startswith('number') and 'mask' in line.lower():
+            header_idx = i
+            break
+        m = pattern_flexible.match(line)
         if m:
             entries.append({
-                "mask":      m.group(1),
-                "createdby": m.group(2),
-                "createdat": m.group(3).strip(),
-                "expiry":    m.group(4).strip(),
-                "reason":    m.group(5) or "",
+                "id":        m.group(1) or "",
+                "mask":      m.group(2),
+                "createdby": m.group(3),
+                "createdat": m.group(4).strip(),
+                "expiry":    m.group(5).strip(),
+                "reason":    (m.group(6) or "").strip(),
+            })
+    if header_idx is not None:
+        header = strip_irc(lines[header_idx]).strip()
+        data_lines = [strip_irc(l).strip() for l in lines[header_idx + 1:]]
+        data_lines = [l for l in data_lines if l and not l.lower().startswith('end of')]
+        for row in _parse_fixed_table_by_header(header, data_lines):
+            entries.append({
+                "id":        row.get("id", ""),
+                "mask":      row.get("mask", ""),
+                "createdby": row.get("creator", ""),
+                "createdat": row.get("created", ""),
+                "expiry":    row.get("expires", ""),
+                "reason":    row.get("reason", ""),
             })
     return entries
+
+
+def parse_akill_view(lines):
+    return parse_xline_view(lines)
 
 
 def parse_cs_info(lines):

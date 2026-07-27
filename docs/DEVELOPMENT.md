@@ -131,14 +131,18 @@ offer), oper: All VHosts (list/set/setall/del/delall), Waiting Requests
 (activate/reject), Offer List management (add/del/clear).
 
 ### OperServ
-AKILL, Chankill, Services Ignore List, Sessions + session-limit Exceptions
-(parsed tables, threshold control), User List + Channel List
-(both paginated, with search — see Gotchas), Forbid (paginated, searchable,
-NICK/CHAN/EMAIL/PASSWORD/REGISTER), Services Operators (list/add/del),
-Stats, News (LOGONNEWS/OPERNEWS/RANDOMNEWS), Seen, Force Mode, Noop, Jupe,
-Danger Zone (Reload/Update/Restart/Shutdown/Quit — the latter three
-require typing the network name to confirm, matching Anope's own CLI
-behavior).
+AKILL, SNLINE, SQLINE (realname / nick+channel bans — all three share one
+parser, see Gotchas), Chankill, Kill, Services Ignore List, Sessions +
+session-limit Exceptions (parsed tables, threshold control), User List +
+Channel List (both paginated, with search — see Gotchas), Forbid
+(paginated, searchable, NICK/CHAN/EMAIL/PASSWORD/REGISTER), Services
+Operators (list/add/del), Stats, News (LOGONNEWS/OPERNEWS/RANDOMNEWS),
+Seen, Force Mode, Noop, Jupe, Danger Zone (DEFCON 1-5, Reload, Update,
+Restart, Shutdown, Quit — DEFCON below 5 and the latter three require
+typing the network name to confirm, matching Anope's own CLI behavior).
+Not exposed: CONFIG/MODINFO/MODLIST/MODLOAD/MODRELOAD/MODUNLOAD/
+LOGSEARCH/SVSNICK/SVSJOIN/SVSPART/KICK — deliberately left off, see Known
+limitations below.
 
 ### UI / UX
 Light/dark theme (persisted, FOUC-free), responsive layout (collapsible
@@ -312,6 +316,43 @@ bypass. A non-oper account can't be granted a privileged action just by
 having the panel call it on their behalf; that would need a real,
 separately-provisioned service oper account in `opers.conf`.
 
+**AKILL/SNLINE/SQLINE `VIEW` share one reply shape**, parsed by a single
+`parse_xline_view()`. Its FIXED-layout branch works differently from
+every other FIXED parser in this codebase: most FIXED lists have only
+single-token (`\S+`) fields, but SNLINE/SQLINE/AKILL's "Expires" column
+can itself be multi-word ("expires in 7 days"), which a per-field regex
+can't represent. Solved with a small generic
+`_parse_fixed_table_by_header()` helper that slices each data row using
+the *character offsets* of the header row's column names instead of
+guessing a regex — reusable for any future FIXED table with a
+multi-word column.
+
+**`SNLINE ADD`'s multi-word reason silently breaks without an explicit
+expiry.** A real bug in `os_sxline.cpp`'s param-reconstruction logic:
+when no `+expiry` is given, the code re-joins only two of Anope's
+internal command tokens instead of the one that actually absorbs
+overflow words, so anything past the first reason word gets dropped (or
+the whole command hits a syntax error, depending on word count) —
+confirmed live. `SQLINE ADD` doesn't have this issue. Not something to
+patch in Anope's source; the panel works around it by always sending an
+explicit expiry (defaults to 30d if left blank in the form).
+
+**`DEFCON` has no read-only status query** — calling it with no level
+argument returns a plain `"No such command"` error, confirmed live.
+There is no way to ask Anope "what level are we at" short of remembering
+the last change; the panel's DEFCON page reflects that honestly (no
+persistent "current level" display, just action buttons + Anope's own
+confirmation text).
+
+**`OperServ KILL`'s success/failure reply is inverted from every other
+command.** Checked `os_kill.cpp`: a genuinely successful kill sends *no
+reply at all* (empty RPC result); only the failure paths ("Nick X isn't
+currently in use.", "Access denied.") call `source.Reply()`. So for
+`KILL` specifically, a non-empty result means failure — the opposite of
+the general "failures look like success, check the text" rule above.
+Caught by testing against a nonexistent nick and noticing the panel
+flashed the "not in use" message as a success.
+
 ---
 
 ## Known limitations / roadmap
@@ -321,8 +362,10 @@ separately-provisioned service oper account in `opers.conf`.
   out-of-band step the panel can't assist with. Users can validate from
   IRC once their TXT record propagates.
 - Not yet exposed: `CONFIG`/`MODINFO`/`MODLIST`/`MODLOAD`/`MODRELOAD`/
-  `MODUNLOAD`/`LOGSEARCH`/`DEFCON`/`SNLINE`/`SQLINE`/`SVSNICK`/`SVSJOIN`/
-  `SVSPART`/`KICK`/`KILL` — lower-value or higher-risk admin commands.
+  `MODUNLOAD`/`LOGSEARCH`/`SVSNICK`/`SVSJOIN`/`SVSPART`/`KICK` —
+  deliberately left off: read-only introspection better suited to shell
+  access, or one-off IRC-moment actions opers already do faster from
+  their client.
 - **MemoServ channel memos** (`MS LIST #channel`) not yet built — would
   want its own view under the channel's ChanServ context.
 - No CSRF protection yet — flagged here deliberately, see the README's

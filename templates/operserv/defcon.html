@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}OperServ — DEFCON{% endblock %}
+{% block content %}
+<div style="max-width:640px;">
+  <div class="mb-5">
+    <div class="page-title">DEFCON</div>
+    <div class="page-subtitle">
+      Network-wide restriction levels, useful during an attack. Anope exposes no
+      "current level" query — this page has no persistent status, same as issuing
+      the command from IRC. Watch for the confirmation message after each change.
+    </div>
+  </div>
+
+  <div class="card mb-5 p-4 flex items-center justify-between">
+    <div>
+      <div style="color:var(--text); font-weight:600; font-size:0.9rem;">DEFCON 5 — Normal operation</div>
+      <div style="color:var(--text-muted); font-size:0.8rem;">No restrictions. Use this to stand down from any lower level.</div>
+    </div>
+    <form method="POST" action="{{ url_for('operserv.defcon_set', level=5) }}">
+      <button type="submit" class="btn btn-secondary">Set DEFCON 5</button>
+    </form>
+  </div>
+
+  {% for level, desc in [
+    (4, 'Disables new channel/nick registrations and MLOCK changes; reduces the session limit.'),
+    (3, 'Level 4 restrictions, plus forces the configured channel modes on every channel.'),
+    (2, 'Level 3 restrictions, plus silently ignores all non-opers.'),
+    (1, 'Level 2 restrictions, plus AKILLs any new client that connects. Most restrictive.'),
+  ] %}
+  <div class="card mb-5 p-5" style="border-color:var(--danger);">
+    <div style="color:var(--text); font-weight:600; font-size:0.9rem; margin-bottom:0.25rem;">DEFCON {{ level }}</div>
+    <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">{{ desc }} Exact restrictions are set in this network's <span class="font-mono">operserv.conf</span>.</div>
+    <form method="POST" action="{{ url_for('operserv.defcon_set', level=level) }}"
+          style="display:flex; gap:0.5rem;"
+          onsubmit="return confirm('Set DEFCON {{ level }} — are you sure?');">
+      <input type="text" name="confirm" required autocomplete="off"
+             placeholder="Type {{ network_name }} to confirm" class="form-input font-mono">
+      <button type="submit" class="btn btn-danger" style="white-space:nowrap;">Set DEFCON {{ level }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

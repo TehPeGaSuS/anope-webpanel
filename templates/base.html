@@ -313,7 +313,10 @@
 
       {% elif service == 'operserv' %}
         <a href="{{ url_for('operserv.akill') }}"    class="sidebar-link {{ 'active' if ep == 'operserv.akill' }}">AKILL</a>
+        <a href="{{ url_for('operserv.snline') }}"   class="sidebar-link {{ 'active' if ep == 'operserv.snline' }}">SNLINE</a>
+        <a href="{{ url_for('operserv.sqline') }}"   class="sidebar-link {{ 'active' if ep == 'operserv.sqline' }}">SQLINE</a>
         <a href="{{ url_for('operserv.chankill') }}" class="sidebar-link {{ 'active' if ep == 'operserv.chankill' }}">Chankill</a>
+        <a href="{{ url_for('operserv.kill') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.kill' }}">Kill</a>
         <a href="{{ url_for('operserv.ignore') }}"   class="sidebar-link {{ 'active' if ep == 'operserv.ignore' }}">Ignore List</a>
         <a href="{{ url_for('operserv.sessions') }}" class="sidebar-link {{ 'active' if ep == 'operserv.sessions' }}">Sessions</a>
         <a href="{{ url_for('operserv.userlist') }}" class="sidebar-link {{ 'active' if ep == 'operserv.userlist' }}">User List</a>
@@ -327,6 +330,7 @@
         <a href="{{ url_for('operserv.jupe') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.jupe' }}">Jupe</a>
         <a href="{{ url_for('operserv.noop') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.noop' }}">Noop</a>
         <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">Danger Zone</div>
+        <a href="{{ url_for('operserv.defcon') }}"   class="sidebar-link {{ 'active' if ep == 'operserv.defcon' }}" style="color:var(--danger);">DEFCON</a>
         <a href="{{ url_for('operserv.danger') }}"   class="sidebar-link {{ 'active' if ep == 'operserv.danger' }}" style="color:var(--danger);">Reload / Shutdown</a>
 
       {% else %}

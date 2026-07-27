@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, g
 from rpc import rpc, AnopeError
 from auth import login_required
-from utils import (parse_akill_view, parse_os_userlist, parse_os_chanlist,
+from utils import (parse_akill_view, parse_xline_view, parse_os_userlist, parse_os_chanlist,
                    parse_os_oper_list, parse_os_ignore_list, parse_os_news_list,
                    parse_os_forbid_list, parse_os_session_list, parse_os_exception_list,
                    as_search_mask, as_userlist_mask)
@@ -587,3 +587,173 @@ def danger_action(action):
     except AnopeError as e:
         flash(e.message, "error")
     return redirect(url_for("operserv.danger"))
+
+
+# ── SNLINE / SQLINE ──────────────────────────────────────────────────────────
+# Both share AKILL's underlying XLine machinery and reply shape (see
+# parse_xline_view). SNLINE ADD has a real Anope-side quirk: its multi-word
+# reason is only captured correctly when an explicit +expiry is also given
+# (confirmed live) — the panel always sends one, defaulting to 30d, so the
+# reason field behaves the same as AKILL/SQLINE's from the user's perspective.
+
+@bp.route("/snline")
+@login_required
+@oper_required
+def snline():
+    try:
+        result = rpc("anope.command", g.account, "OperServ", "SNLINE VIEW")
+        entries = parse_xline_view(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+        entries = []
+    return render_template("operserv/snline.html", entries=entries)
+
+
+@bp.route("/snline/add", methods=["POST"])
+@login_required
+@oper_required
+def snline_add():
+    mask = request.form.get("mask", "").strip()
+    expiry = request.form.get("expiry", "").strip() or "30d"
+    reason = request.form.get("reason", "").strip()
+    if not mask or not reason:
+        flash("Mask and reason are required.", "error")
+        return redirect(url_for("operserv.snline"))
+    try:
+        rpc("anope.command", g.account, "OperServ", f"SNLINE ADD +{expiry} {mask}:{reason}")
+        flash(f"SNLINE added for {mask}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.snline"))
+
+
+@bp.route("/snline/del", methods=["POST"])
+@login_required
+@oper_required
+def snline_del():
+    mask = request.form.get("mask", "").strip()
+    try:
+        rpc("anope.command", g.account, "OperServ", f"SNLINE DEL {mask}")
+        flash(f"SNLINE removed for {mask}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.snline"))
+
+
+@bp.route("/sqline")
+@login_required
+@oper_required
+def sqline():
+    try:
+        result = rpc("anope.command", g.account, "OperServ", "SQLINE VIEW")
+        entries = parse_xline_view(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+        entries = []
+    return render_template("operserv/sqline.html", entries=entries)
+
+
+@bp.route("/sqline/add", methods=["POST"])
+@login_required
+@oper_required
+def sqline_add():
+    mask = request.form.get("mask", "").strip()
+    expiry = request.form.get("expiry", "").strip()
+    reason = request.form.get("reason", "").strip()
+    if not mask or not reason:
+        flash("Mask and reason are required.", "error")
+        return redirect(url_for("operserv.sqline"))
+    cmd = "SQLINE ADD"
+    if expiry:
+        cmd += f" +{expiry}"
+    cmd += f" {mask} {reason}"
+    try:
+        rpc("anope.command", g.account, "OperServ", cmd)
+        flash(f"SQLINE added for {mask}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.sqline"))
+
+
+@bp.route("/sqline/del", methods=["POST"])
+@login_required
+@oper_required
+def sqline_del():
+    mask = request.form.get("mask", "").strip()
+    try:
+        rpc("anope.command", g.account, "OperServ", f"SQLINE DEL {mask}")
+        flash(f"SQLINE removed for {mask}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.sqline"))
+
+
+# ── DEFCON ───────────────────────────────────────────────────────────────────
+# There is no read-only "current level" query in Anope — DEFCON is a
+# set-only command (confirmed live: bare "DEFCON" with no level argument
+# returns "No such command", not a status reply). The page mirrors that:
+# it's a set of action buttons with no persistent "current status" display,
+# same as an oper would experience issuing this from IRC directly. Level 5
+# (normal operation / undo) needs no confirmation; levels 1-4 require typing
+# the network name, same friction as the Danger Zone's restart/shutdown/quit.
+
+@bp.route("/defcon")
+@login_required
+@oper_required
+def defcon():
+    return render_template("operserv/defcon.html")
+
+
+@bp.route("/defcon/<int:level>", methods=["POST"])
+@login_required
+@oper_required
+def defcon_set(level):
+    import os
+    if level not in (1, 2, 3, 4, 5):
+        flash("Invalid DEFCON level.", "error")
+        return redirect(url_for("operserv.defcon"))
+    if level != 5:
+        confirm = request.form.get("confirm", "").strip()
+        network_name = os.environ.get("NETWORK_NAME", "")
+        if confirm != network_name:
+            flash("Network name did not match. Action cancelled.", "error")
+            return redirect(url_for("operserv.defcon"))
+    try:
+        result = rpc("anope.command", g.account, "OperServ", f"DEFCON {level}")
+        flash(" ".join(result) if result else f"DEFCON level set to {level}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("operserv.defcon"))
+
+
+# ── KILL ─────────────────────────────────────────────────────────────────────
+# One-shot action, not a persistent list — same "form posts to itself" shape
+# as Force Mode. KILL is an inversion of the usual "failures look like
+# success" gotcha: confirmed live against os_kill.cpp — on a REAL kill it
+# sends no reply at all (empty result), and only replies with text on
+# failure ("Nick X isn't currently in use." / "Access denied."). So here a
+# non-empty result means failure, the opposite of every other command.
+
+@bp.route("/kill", methods=["GET", "POST"])
+@login_required
+@oper_required
+def kill():
+    if request.method == "POST":
+        target = request.form.get("target", "").strip()
+        reason = request.form.get("reason", "").strip()
+        if not target:
+            flash("Target nick is required.", "error")
+            return redirect(url_for("operserv.kill"))
+        cmd = f"KILL {target}"
+        if reason:
+            cmd += f" {reason}"
+        try:
+            result = rpc("anope.command", g.account, "OperServ", cmd)
+            if result:
+                flash(" ".join(result), "error")
+            else:
+                flash(f"{target} killed.", "success")
+        except AnopeError as e:
+            flash(e.message, "error")
+        return redirect(url_for("operserv.kill"))
+    return render_template("operserv/kill.html")
