@@ -9,7 +9,8 @@
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr><th>#</th><th>Nick</th><th>Lines</th><th>Words</th><th>Letters</th><th>Smileys</th><th>Actions</th></tr>
       </thead>
@@ -27,6 +28,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No stats available yet.</div>

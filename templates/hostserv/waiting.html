@@ -9,7 +9,8 @@
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>#</th>
@@ -44,6 +45,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div class="card p-4" style="color:var(--text-muted);">

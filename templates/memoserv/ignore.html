@@ -9,7 +9,7 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Add</div>
-    <form method="POST" action="{{ url_for('memoserv.ignore_add') }}" class="flex gap-2">
+    <form method="POST" action="{{ url_for('memoserv.ignore_add') }}" class="flex gap-2 flex-wrap">
       <input type="text" name="entry" placeholder="nick or host" class="form-input font-mono">
       <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
     </form>
@@ -17,7 +17,8 @@
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead><tr><th>Entry</th><th></th></tr></thead>
       <tbody>
         {% for e in entries %}
@@ -33,6 +34,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">Ignore list is empty.</div>

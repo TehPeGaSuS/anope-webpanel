@@ -21,7 +21,8 @@
 
   {% if certs %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead><tr><th>Fingerprint</th><th></th></tr></thead>
       <tbody>
         {% for fp in certs %}
@@ -37,6 +38,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No certificates on file.</div>

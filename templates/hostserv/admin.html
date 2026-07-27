@@ -8,7 +8,7 @@
   </div>
 
   <div class="card mb-4 p-4">
-    <form method="GET" action="{{ url_for('hostserv.admin') }}" class="flex gap-2">
+    <form method="GET" action="{{ url_for('hostserv.admin') }}" class="flex gap-2 flex-wrap">
       <input type="text" name="pattern" value="{{ pattern }}" placeholder="Filter nick/vhost mask (e.g. *.PTirc.org)"
              class="form-input font-mono" style="flex:1;">
       <button type="submit" class="btn btn-secondary">Filter</button>
@@ -18,12 +18,12 @@
   {# Manual SET form — works on any nick, doesn't require it to be in the list below #}
   <div class="card mb-4 p-4">
     <div class="section-title">Set a VHost manually</div>
-    <form method="POST" action="{{ url_for('hostserv.set_vhost') }}" class="flex gap-2" style="margin-bottom:0.5rem;">
+    <form method="POST" action="{{ url_for('hostserv.set_vhost') }}" class="flex gap-2 flex-wrap" style="margin-bottom:0.5rem;">
       <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:160px;">
       <input type="text" name="hostmask" placeholder="ident@host or host" class="form-input font-mono" style="flex:1;">
       <button type="submit" class="btn btn-primary">SET</button>
     </form>
-    <form method="POST" action="{{ url_for('hostserv.setall') }}" class="flex gap-2">
+    <form method="POST" action="{{ url_for('hostserv.setall') }}" class="flex gap-2 flex-wrap">
       <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:160px;">
       <input type="text" name="hostmask" placeholder="ident@host or host" class="form-input font-mono" style="flex:1;">
       <button type="submit" class="btn btn-secondary">SETALL (all grouped nicks)</button>
@@ -32,7 +32,8 @@
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>#</th>
@@ -69,6 +70,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div class="card p-4" style="color:var(--text-muted);">

@@ -8,7 +8,7 @@
   </div>
 
   <div class="card mb-5 p-4">
-    <form method="GET" class="flex gap-2">
+    <form method="GET" class="flex gap-2 flex-wrap">
       <input type="text" name="pattern" value="{{ pattern }}"
              placeholder="Pattern (e.g. James*)" class="form-input" style="max-width:260px;">
       <button type="submit" class="btn btn-primary">Search</button>
@@ -18,7 +18,7 @@
   {# Direct oper lookup — jump straight to oper view for a known nick #}
   <div class="card mb-4 p-4" style="border-color:var(--card-border);">
     <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">Jump to nick</div>
-    <form method="GET" action="" id="jumpForm" class="flex gap-2">
+    <form method="GET" action="" id="jumpForm" class="flex gap-2 flex-wrap">
       <input type="text" id="jumpNick" placeholder="Exact nick…"
              class="form-input font-mono" style="max-width:220px;">
       <button type="button" class="btn btn-secondary"
@@ -30,7 +30,8 @@
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead><tr><th>Nick</th><th>Account</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for e in entries %}
@@ -46,6 +47,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% elif pattern %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No nicks found matching <span class="font-mono">{{ pattern }}</span>.</div>

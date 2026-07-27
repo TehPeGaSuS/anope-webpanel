@@ -40,7 +40,7 @@
 
       {# Set mode form #}
       <form method="POST" action="{{ url_for('chanserv.mode', channel=channel|chanurl) }}"
-            class="flex gap-2 mt-3">
+            class="flex gap-2 mt-3 flex-wrap">
         <input type="text" name="modes" placeholder="+m or -k key" class="form-input font-mono">
         <button type="submit" class="btn btn-primary">Set</button>
       </form>
@@ -56,7 +56,7 @@
       <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:0.75rem;">No topic set.</div>
       {% endif %}
       <form method="POST" action="{{ url_for('chanserv.topic', channel=channel|chanurl) }}"
-            class="flex gap-2">
+            class="flex gap-2 flex-wrap">
         <input type="text" name="topic" placeholder="New topic (blank to clear)"
                class="form-input">
         <button type="submit" class="btn btn-primary">Set</button>
@@ -75,7 +75,7 @@
       </form>
 
       <form method="POST" action="{{ url_for('chanserv.enforce', channel=channel|chanurl) }}"
-            class="flex gap-2">
+            class="flex gap-2 flex-wrap">
         <select name="what" class="form-input" style="max-width:140px;">
           <option value="">All</option>
           <option value="MODES">MODES</option>
@@ -92,7 +92,7 @@
       </form>
 
       <form method="POST" action="{{ url_for('chanserv.status', channel=channel|chanurl) }}"
-            class="flex gap-2">
+            class="flex gap-2 flex-wrap">
         <input type="text" name="nick" placeholder="Nick for STATUS"
                class="form-input font-mono" style="max-width:150px;">
         <button type="submit" class="btn btn-secondary">Status</button>
@@ -157,7 +157,8 @@
       details.manage summary { list-style:none; }
       details.manage summary::-webkit-details-marker { display:none; }
     </style>
-    <table class="data-table" id="usersTable">
+    <div style="overflow-x:auto;">
+<table class="data-table" id="usersTable">
       <thead>
         <tr>
           <th style="width:40%;">Nick</th>
@@ -251,6 +252,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
 
     {# Bottom pagination strip #}
     {% if total_pages > 1 %}
@@ -325,29 +327,29 @@
     <div class="section-title">User actions</div>
     <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
 
-      <form method="POST" action="{{ url_for('chanserv.invite', channel=channel|chanurl) }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('chanserv.invite', channel=channel|chanurl) }}" class="flex gap-2 flex-wrap">
         <input type="text" name="nick" placeholder="Nick to invite" class="form-input font-mono" style="max-width:200px;">
         <button type="submit" class="btn btn-primary">Invite</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.unban', channel=channel|chanurl) }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('chanserv.unban', channel=channel|chanurl) }}" class="flex gap-2 flex-wrap">
         <input type="text" name="mask" placeholder="Mask (blank = you)" class="form-input font-mono" style="max-width:200px;">
         <button type="submit" class="btn btn-secondary">Unban</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.ban', channel=channel|chanurl) }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('chanserv.ban', channel=channel|chanurl) }}" class="flex gap-2 flex-wrap">
         <input type="text" name="mask" placeholder="Nick or mask" class="form-input font-mono" style="max-width:160px;">
         <input type="text" name="expiry" placeholder="Expiry (optional)" class="form-input font-mono" style="max-width:120px;">
         <input type="text" name="reason" placeholder="Reason (optional)" class="form-input" style="max-width:160px;">
         <button type="submit" class="btn btn-danger">Ban</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.down', channel=channel|chanurl) }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('chanserv.down', channel=channel|chanurl) }}" class="flex gap-2 flex-wrap">
         <input type="text" name="nick" placeholder="Nick (blank = you)" class="form-input font-mono" style="max-width:160px;">
         <button type="submit" class="btn btn-secondary">Down</button>
       </form>
 
-      <form method="POST" action="{{ url_for('chanserv.up', channel=channel|chanurl) }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('chanserv.up', channel=channel|chanurl) }}" class="flex gap-2 flex-wrap">
         <input type="text" name="nick" placeholder="Nick (blank = you)" class="form-input font-mono" style="max-width:160px;">
         <button type="submit" class="btn btn-secondary">Up</button>
       </form>

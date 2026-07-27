@@ -24,7 +24,8 @@
 
   {% if memos %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th style="width:40px;">#</th>
@@ -60,6 +61,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
 
   <div style="margin-top:1rem; text-align:right;">
@@ -77,11 +79,11 @@
   <div class="card mt-5 p-4">
     <div class="section-title">Cancel / Check</div>
     <div class="flex gap-2" style="flex-wrap:wrap;">
-      <form method="POST" action="{{ url_for('memoserv.cancel') }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('memoserv.cancel') }}" class="flex gap-2 flex-wrap">
         <input type="text" name="target" placeholder="Nick or #channel" class="form-input font-mono" style="max-width:200px;">
         <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Cancel last unread memo</button>
       </form>
-      <form method="POST" action="{{ url_for('memoserv.check') }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('memoserv.check') }}" class="flex gap-2 flex-wrap">
         <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:160px;">
         <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Check if read</button>
       </form>

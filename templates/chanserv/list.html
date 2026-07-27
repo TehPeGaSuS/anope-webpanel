@@ -24,7 +24,8 @@
 
   {% if channels %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>Channel</th>
@@ -50,6 +51,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% elif pattern %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No channels found matching <span class="font-mono">{{ pattern }}</span>.</div>

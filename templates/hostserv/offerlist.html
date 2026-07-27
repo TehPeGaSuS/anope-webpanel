@@ -9,7 +9,8 @@
 
   {% if offers %}
   <div class="card mb-4">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>#</th>
@@ -36,6 +37,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
     <div style="padding:0.6rem 1rem; font-size:0.75rem; color:var(--text-muted); border-top:1px solid var(--card-border);">
       Once a vhost is taken, you can't take another for 10 years.
     </div>

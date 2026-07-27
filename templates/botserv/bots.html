@@ -9,7 +9,7 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Add Bot</div>
-    <form method="POST" action="{{ url_for('botserv.bots_add') }}" class="flex gap-2" style="flex-wrap:wrap;">
+    <form method="POST" action="{{ url_for('botserv.bots_add') }}" class="flex gap-2 flex-wrap" style="flex-wrap:wrap;">
       <input type="text" name="nick" placeholder="Nick" class="form-input" style="max-width:160px;">
       <input type="text" name="user" placeholder="Username" class="form-input" style="max-width:160px;">
       <input type="text" name="host" placeholder="Hostname" class="form-input" style="max-width:200px;">
@@ -20,7 +20,7 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Rename / Change Bot</div>
-    <form method="POST" action="{{ url_for('botserv.bots_change') }}" class="flex gap-2" style="flex-wrap:wrap;">
+    <form method="POST" action="{{ url_for('botserv.bots_change') }}" class="flex gap-2 flex-wrap" style="flex-wrap:wrap;">
       <input type="text" name="oldnick" placeholder="Current nick" class="form-input" style="max-width:160px;">
       <input type="text" name="newnick" placeholder="New nick" class="form-input" style="max-width:160px;">
       <input type="text" name="user" placeholder="New username (optional)" class="form-input" style="max-width:180px;">
@@ -32,7 +32,8 @@
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead><tr><th>Nick</th><th>Mask</th><th>Realname</th><th></th></tr></thead>
       <tbody>
         {% for e in entries %}
@@ -55,6 +56,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No bots found.</div>

@@ -15,6 +15,70 @@ For install/usage docs, see the [README](../README.md).
 
 ---
 
+## Session Updates (2026-07-27, cont'd) — Full responsive pass
+
+A "wait, is any of this actually responsive?" question turned out to have
+an honest answer of no: `base.html` had a viewport meta tag and nothing
+else — zero `@media` queries, a hard-coded 180px sidebar with
+`flex-shrink:0`, and a plain horizontal top nav with no wrap/scroll
+handling. Fixed properly rather than patched around, and actually verified
+visually (not just "the markup renders") using a headless Chrome +
+Playwright-core script driving the real running dev server at a 390×844
+mobile viewport, logging in as `claudetest3` and screenshotting real
+pages — since a template rendering 200 OK proves nothing about whether the
+layout is usable at that width.
+
+- **Collapsible sidebar below 860px**: `<aside id="sidebar">` becomes
+  `position:fixed`, off-canvas (`transform:translateX(-100%)`), toggled by
+  a new hamburger button in the header (only rendered when logged in) via
+  `toggleSidebar()`/`closeSidebar()` in the existing inline `<script>`
+  block (same place the dark-mode toggle already lives). A `.sidebar-backdrop`
+  overlay closes it on tap-outside. Above 860px, behavior is completely
+  unchanged (verified via a 1280px screenshot against the same page —
+  pixel-identical to before this pass).
+- **Top nav** (`Dashboard/NickServ/ChanServ/MemoServ/HostServ/OperServ`)
+  gets `overflow-x:auto` below the breakpoint instead of clipping/
+  wrapping unpredictably. The "Control Panel" subtitle text and the
+  "Logged in as X" text both get a new `.hide-mobile` class to free up
+  header space for the hamburger button — Logout and the theme toggle
+  stay visible at every width.
+- **Every `<table class="data-table">` in the app** (35 templates) is now
+  wrapped in an `overflow-x:auto` div — previously only true of the new
+  FORBID page. Auto-layout tables (the vast majority) just get standard
+  horizontal-scroll-on-overflow for free; no other change needed since
+  content-based column sizing already degrades reasonably.
+- **FORBID's `table-layout:fixed` + percentage `<colgroup>` widths**
+  (added in the previous entry to fix desktop overflow) turned out to
+  actively break mobile: percentage columns on a 390px viewport left ~27px
+  for the Type column, and headers visually overlapped instead of
+  wrapping. Caught by the screenshot, not by curl — this is exactly the
+  kind of bug that "does the HTML contain the right text" testing cannot
+  see. Fixed by adding `min-width:640px` to the table so it degrades to
+  horizontal scroll (matching every other table) instead of squeezing
+  columns into unreadable widths.
+- **Every "Add X" / search form using inline `flex gap-2`** (29 templates)
+  was audited for a missing wrap: without it, narrow screens squeezed 3-4
+  input fields into illegibly thin boxes side by side (confirmed live on
+  AKILL's Add form — a "Reason" field readable as "Reaso" before the fix).
+  Added Tailwind's `flex-wrap` utility class wherever `flex gap-2` appeared
+  without one already (`forbid.html`'s Add Forbid form already had an
+  inline `flex-wrap:wrap`, left as harmless duplication rather than
+  special-cased out).
+
+**Process note**: for this pass specifically, "verified live" meant an
+actual rendered screenshot at a real mobile viewport width, not just an
+HTTP 200 / grep-for-text check. The FORBID column-overlap bug would have
+shipped clean past every check used earlier in the session (route returns
+200, template parses, expected text substrings present) — it was only
+visible as *pixels overlapping other pixels*, which nothing but an actual
+render catches. Worth reaching for a headless-browser screenshot (Chrome
+is already installed on this box; `playwright-core` pointed at
+`/usr/bin/google-chrome` via `executablePath` needs no browser download)
+whenever a change is about layout/visual behavior rather than
+data-correctness — the two require genuinely different verification.
+
+---
+
 ## Session Updates (2026-07-27, cont'd) — Forbid search, top pagination, table-overflow fix
 
 - **Fixed a real layout bug on the FORBID page**: neither `.card` nor

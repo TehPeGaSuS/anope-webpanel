@@ -13,14 +13,15 @@
     {% endif %}
   </div>
 
-  <form method="GET" class="card mb-5 p-4 flex gap-2">
+  <form method="GET" class="card mb-5 p-4 flex gap-2 flex-wrap">
     <input type="text" name="pattern" value="{{ pattern }}" placeholder="nick!user@host[#realname] or #channel" class="form-input">
     <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Search</button>
   </form>
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>Name</th>
@@ -38,6 +39,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
     {{ pagination('operserv.userlist', page, total_pages, pattern=pattern) }}
   </div>
   {% else %}

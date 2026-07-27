@@ -11,7 +11,7 @@
   <div class="card mb-5 p-4">
     <div class="section-title">Add / update entry</div>
     <form method="POST" action="{{ url_for('chanserv.access_add', channel=channel|chanurl) }}"
-          class="flex gap-2">
+          class="flex gap-2 flex-wrap">
       <input type="text" name="mask" placeholder="nick or mask" class="form-input" style="max-width:220px;">
       <input type="text" name="flags" placeholder="+flags (e.g. +oOtv)" class="form-input" style="max-width:180px;">
       <button type="submit" class="btn btn-primary">Set</button>
@@ -20,7 +20,8 @@
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>Mask</th>
@@ -57,6 +58,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No access entries.</div>

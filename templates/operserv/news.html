@@ -11,14 +11,15 @@
   <div class="card mb-5">
     <div class="p-4" style="border-bottom:1px solid var(--card-border);">
       <div class="section-title" style="margin-bottom:0.75rem;">{{ section.label }}</div>
-      <form method="POST" action="{{ url_for('operserv.news_add') }}" class="flex gap-2">
+      <form method="POST" action="{{ url_for('operserv.news_add') }}" class="flex gap-2 flex-wrap">
         <input type="hidden" name="cmd" value="{{ section.cmd }}">
         <input type="text" name="text" placeholder="News text" class="form-input">
         <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
       </form>
     </div>
     {% if section.entries %}
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>#</th>
@@ -46,6 +47,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
     {% else %}
     <div class="p-4" style="color:var(--text-muted); font-size:0.85rem;">No entries.</div>
     {% endif %}

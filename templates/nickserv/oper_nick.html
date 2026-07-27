@@ -14,7 +14,8 @@
 
   {# ── Account info ── #}
   <div class="card mb-4">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <tbody>
         <tr>
           <td style="color:var(--text-muted); width:160px;">Account</td>
@@ -67,6 +68,7 @@
         {% endif %}
       </tbody>
     </table>
+</div>
   </div>
 
   {# ── Grouped nicks ── #}
@@ -75,7 +77,8 @@
     <div style="padding:0.6rem 1rem; border-bottom:1px solid var(--pill-bg);">
       <div class="section-title" style="margin-bottom:0;">Grouped nicks</div>
     </div>
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr><th>Nick</th><th>Last seen</th><th>VHost</th></tr>
       </thead>
@@ -96,6 +99,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% endif %}
 
@@ -104,7 +108,7 @@
     <div class="section-title">Set password</div>
     <form method="POST"
           action="{{ url_for('nickserv.oper_saset_password', nick=target) }}"
-          class="flex gap-2">
+          class="flex gap-2 flex-wrap">
       <input type="password" name="password" placeholder="New password"
              class="form-input" style="max-width:280px;" autocomplete="new-password">
       <button type="submit" class="btn btn-primary">Set password</button>
@@ -171,7 +175,7 @@
       Type the nick to confirm.
     </p>
     <form method="POST" action="{{ url_for('nickserv.oper_drop', nick=target) }}"
-          class="flex gap-2"
+          class="flex gap-2 flex-wrap"
           onsubmit="return confirm('Drop {{ target }} permanently?');">
       <input type="text" name="confirm" placeholder="Type {{ target }} to confirm"
              class="form-input font-mono" style="max-width:260px;">

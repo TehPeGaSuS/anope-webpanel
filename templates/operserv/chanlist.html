@@ -7,14 +7,15 @@
     <div class="page-subtitle">All channels currently in use on the network.</div>
   </div>
 
-  <form method="GET" class="card mb-5 p-4 flex gap-2">
+  <form method="GET" class="card mb-5 p-4 flex gap-2 flex-wrap">
     <input type="text" name="pattern" value="{{ pattern }}" placeholder="#pattern or nick" class="form-input">
     <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Search</button>
   </form>
 
   {% if entries %}
   <div class="card">
-    <table class="data-table">
+    <div style="overflow-x:auto;">
+<table class="data-table">
       <thead>
         <tr>
           <th>Channel</th>
@@ -34,6 +35,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   </div>
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No channels found.</div>

@@ -149,6 +149,31 @@
     .page-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
     .section-title { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem; }
     .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    /* ── Responsive: hamburger sidebar + scrollable top nav below 860px ── */
+    .hamburger-btn {
+      display: none; background: none; border: none; color: var(--text);
+      font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 0.25rem 0.6rem;
+      margin-right: 0.5rem; border-radius: 4px;
+    }
+    .hamburger-btn:hover { background: var(--td-hover); }
+    .sidebar-backdrop { display: none; }
+    @media (max-width: 860px) {
+      .hamburger-btn { display: inline-flex; align-items: center; }
+      .hide-mobile { display: none !important; }
+      header nav { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      #sidebar {
+        position: fixed; top: 48px; left: 0; bottom: 0; z-index: 50;
+        width: 220px; transform: translateX(-100%);
+        transition: transform 0.2s ease; overflow-y: auto;
+        box-shadow: 2px 0 16px rgba(0,0,0,0.35);
+      }
+      #sidebar.sidebar-open { transform: translateX(0); }
+      .sidebar-backdrop.show {
+        display: block; position: fixed; top: 48px; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.45); z-index: 45;
+      }
+    }
   </style>
   {% block head %}{% endblock %}
 </head>
@@ -156,10 +181,13 @@
 
   {# ── Top nav ── #}
   <header style="background:var(--nav); border-bottom:1px solid var(--card-border,#d0d7de); height:48px;" class="flex items-center px-4">
+    {% if session.get("account") %}
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle menu">☰</button>
+    {% endif %}
     <div class="flex items-center gap-3 mr-8">
       <span class="font-mono font-bold text-sm" style="color:#58a6ff;">ANOPE WEB</span>
-      <span class="text-xs uppercase tracking-widest" style="color:#30363d;">|</span>
-      <span class="text-xs uppercase tracking-widest font-semibold" style="color:var(--text-muted);">Control Panel</span>
+      <span class="text-xs uppercase tracking-widest hide-mobile" style="color:#30363d;">|</span>
+      <span class="text-xs uppercase tracking-widest font-semibold hide-mobile" style="color:var(--text-muted);">Control Panel</span>
     </div>
 
     {% if session.get("account") %}
@@ -179,8 +207,8 @@
          class="nav-tab {{ 'active' if service == 'operserv' }}">OperServ</a>
     </nav>
 
-    <div class="ml-auto text-xs" style="color:var(--text-muted);">
-      Logged in as <span style="color:var(--text);" class="font-semibold">{{ session.account }}</span>
+    <div class="ml-auto text-xs" style="color:var(--text-muted); white-space:nowrap;">
+      <span class="hide-mobile">Logged in as <span style="color:var(--text);" class="font-semibold">{{ session.account }}</span></span>
       <a href="{{ url_for('auth.logout') }}" class="ml-2" style="color:#58a6ff;">(Logout)</a>
       <button onclick="toggleTheme()" id="theme-btn" style="margin-left:1rem; background:var(--btn-sec-bg); border:1px solid var(--btn-sec-border); color:var(--btn-sec-text); border-radius:4px; padding:0.2rem 0.6rem; font-size:0.75rem; cursor:pointer;">🌙 Dark</button>
     </div>
@@ -212,10 +240,12 @@
   </div>
   {% endif %}
 
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
   <div class="flex" style="min-height: calc(100vh - 48px);">
 
     {# ── Sidebar ── #}
-    <aside style="width:180px; background:var(--sidebar-bg); border-right:1px solid var(--sidebar-border); flex-shrink:0;">
+    <aside id="sidebar" style="width:180px; background:var(--sidebar-bg); border-right:1px solid var(--sidebar-border); flex-shrink:0;">
 
       {% if service == 'nickserv' %}
         <a href="{{ url_for('nickserv.info') }}"     class="sidebar-link {{ 'active' if ep == 'nickserv.info' }}">Info</a>
@@ -334,6 +364,19 @@
     applyTheme(current === 'dark' ? 'light' : 'dark');
   }
   applyTheme(localStorage.getItem('theme') || 'light');
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar) sidebar.classList.toggle('sidebar-open');
+    if (backdrop) backdrop.classList.toggle('show');
+  }
+  function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar) sidebar.classList.remove('sidebar-open');
+    if (backdrop) backdrop.classList.remove('show');
+  }
 </script>
 </body>
 </html>

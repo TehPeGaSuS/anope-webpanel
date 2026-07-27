@@ -23,7 +23,7 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Add Forbid ({{ ftype }})</div>
-    <form method="POST" action="{{ url_for('operserv.forbid_add') }}" class="flex gap-2" style="flex-wrap:wrap;">
+    <form method="POST" action="{{ url_for('operserv.forbid_add') }}" class="flex gap-2 flex-wrap" style="flex-wrap:wrap;">
       <input type="hidden" name="type" value="{{ ftype }}">
       <input type="text" name="entry"
              placeholder="{% if ftype == 'EMAIL' %}*@example.com{% elif ftype == 'CHAN' %}#channel{% elif ftype == 'NICK' %}nick*{% elif ftype == 'PASSWORD' %}password{% else %}nick or entry{% endif %}"
@@ -34,7 +34,7 @@
     </form>
   </div>
 
-  <form method="GET" class="card mb-5 p-4 flex gap-2">
+  <form method="GET" class="card mb-5 p-4 flex gap-2 flex-wrap">
     <input type="hidden" name="type" value="{{ ftype }}">
     <input type="text" name="search" value="{{ search }}" placeholder="Search mask, creator, or reason" class="form-input">
     <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Search</button>
@@ -47,7 +47,7 @@
   <div class="card">
     {{ pagination('operserv.forbid', page, total_pages, type=ftype, search=search) }}
     <div style="overflow-x:auto;">
-    <table class="data-table" style="table-layout:fixed; width:100%;">
+    <table class="data-table" style="table-layout:fixed; width:100%; min-width:640px;">
       <colgroup>
         <col style="width:22%;">
         <col style="width:8%;">

@@ -10,7 +10,7 @@
   <div class="card mb-5 p-4">
     <div class="section-title">Add entry</div>
     <form method="POST" action="{{ url_for('chanserv.xop_add', channel=channel|chanurl) }}"
-          class="flex gap-2">
+          class="flex gap-2 flex-wrap">
       <select name="type" class="form-input" style="max-width:120px;">
         {% for t in xop_types %}
         <option value="{{ t }}">{{ t }}</option>
@@ -37,7 +37,8 @@
         <span style="font-size:0.75rem; color:var(--text-muted);">{{ lists[xtype]|length }}</span>
       </div>
       {% if lists[xtype] %}
-      <table class="data-table">
+      <div style="overflow-x:auto;">
+<table class="data-table">
         <tbody>
           {% for e in lists[xtype] %}
           <tr>
@@ -53,6 +54,7 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
       {% else %}
       <div style="padding:0.75rem 1rem; color:var(--text-muted); font-size:0.82rem;">Empty.</div>
       {% endif %}

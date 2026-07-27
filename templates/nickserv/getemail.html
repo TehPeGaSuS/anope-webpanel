@@ -6,7 +6,7 @@
     <div class="page-title">Find Accounts by Email</div>
     <div class="page-subtitle">Oper — look up which accounts registered with a given email address.</div>
   </div>
-  <form method="POST" class="card mb-5 p-4 flex gap-2">
+  <form method="POST" class="card mb-5 p-4 flex gap-2 flex-wrap">
     <input type="email" name="email" value="{{ email }}" placeholder="user@example.com" class="form-input" autofocus>
     <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Search</button>
   </form>
@@ -14,7 +14,8 @@
   {% if matches is not none %}
     {% if matches %}
     <div class="card">
-      <table class="data-table">
+      <div style="overflow-x:auto;">
+<table class="data-table">
         <thead><tr><th>Account</th></tr></thead>
         <tbody>
           {% for nick in matches %}
@@ -22,6 +23,7 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
     </div>
     {% else %}
     <div style="color:var(--text-muted); font-size:0.85rem;">No accounts matched {{ email }}.</div>
