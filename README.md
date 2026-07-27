@@ -164,6 +164,14 @@ Notes:
 
 ## Installation
 
+On newer Ubuntu/Debian, `venv` is split out of the base `python3` package and won't be there by default — install it first or `python3 -m venv` will fail with a "No module named venv" / "ensurepip is not available" error:
+
+```bash
+sudo apt install python3-venv python3-pip
+```
+
+Then:
+
 ```bash
 git clone https://github.com/TehPeGaSuS/anope-webpanel.git
 cd anope-webpanel
@@ -268,7 +276,20 @@ The built-in Flask server (`python3 app.py`) is for development only. For produc
 3. Set `FLASK_DEBUG=0` (or omit it) and use a real, unique `SECRET_KEY`.
 4. Consider a process manager (systemd, supervisor) to keep it running and restart on failure.
 
-Example systemd unit:
+### systemd (per-user service, no root required)
+
+Tested on Ubuntu. Rather than a system-wide unit under a dedicated service account, this runs as a **user** systemd service under whichever account owns the checkout — simpler permissions, no `sudo` needed to manage it day-to-day.
+
+One-time setup, as that user:
+
+```bash
+loginctl enable-linger "$(whoami)"   # let the service keep running after you log out / on boot
+mkdir -p ~/.config/systemd/user
+```
+
+`enable-linger` is the important part — without it, systemd kills your user's services the moment your last session ends.
+
+Create `~/.config/systemd/user/anope-panel.service` (adjust the paths to wherever you cloned the repo):
 
 ```ini
 [Unit]
@@ -277,15 +298,25 @@ After=network.target
 
 [Service]
 Type=simple
-User=anope
-WorkingDirectory=/opt/anope-webpanel
-Environment=PATH=/opt/anope-webpanel/.venv/bin
-ExecStart=/opt/anope-webpanel/.venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 'app:create_app()'
+WorkingDirectory=%h/anope-webpanel
+Environment=PATH=%h/anope-webpanel/.venv/bin
+ExecStart=%h/anope-webpanel/.venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 'app:create_app()'
 Restart=on-failure
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ```
+
+(`%h` is systemd's placeholder for the unit owner's home directory — no need to hardcode a username.)
+
+Then enable and start it:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now anope-panel.service
+```
+
+Manage it the same way as any systemd service, just with `--user` on every command: `systemctl --user status anope-panel`, `journalctl --user -u anope-panel -f`, `systemctl --user restart anope-panel`.
 
 ## How it works
 
