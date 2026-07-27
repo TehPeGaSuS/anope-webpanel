@@ -46,7 +46,7 @@
           </td>
           <td style="text-align:right;">
             <form method="POST" action="{{ url_for('operserv.snline_del') }}">
-              <input type="hidden" name="mask" value="{{ e.mask }}">
+              <input type="hidden" name="target" value="{{ e.id or e.mask }}">
               <button type="submit" class="btn btn-danger">Delete</button>
             </form>
           </td>

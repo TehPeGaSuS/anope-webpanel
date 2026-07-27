@@ -327,15 +327,39 @@ the *character offsets* of the header row's column names instead of
 guessing a regex — reusable for any future FIXED table with a
 multi-word column.
 
+**SNLINE masks legitimately contain spaces — don't `\S+` them.** SNLINE
+targets realname/GECOS text (e.g. `*john doe*`), unlike AKILL
+(user@host) and SQLINE (nick/channel) masks, which never have spaces.
+The FLEXIBLE branch of `parse_xline_view()` originally used `(\S+)` for
+the mask group; any spaced-mask entry simply failed to match and
+silently vanished from the parsed list — no error, the row just wasn't
+there. Fixed with a non-greedy `(.+?)` bounded by the literal `" --
+created by "` that always follows the mask. Confirmed live with a real
+`*john doe*` entry. The FIXED branch was unaffected — its header-offset
+slicing handles multi-word values correctly by construction.
+
 **`SNLINE ADD`'s multi-word reason silently breaks without an explicit
-expiry.** A real bug in `os_sxline.cpp`'s param-reconstruction logic:
+expiry — confirmed live on the production network, not just by reading
+source.** A real bug in `os_sxline.cpp`'s param-reconstruction logic:
 when no `+expiry` is given, the code re-joins only two of Anope's
 internal command tokens instead of the one that actually absorbs
 overflow words, so anything past the first reason word gets dropped (or
-the whole command hits a syntax error, depending on word count) —
-confirmed live. `SQLINE ADD` doesn't have this issue. Not something to
-patch in Anope's source; the panel works around it by always sending an
-explicit expiry (defaults to 30d if left blank in the form).
+the whole command hits a syntax error, depending on word count).
+Reproduced for real: `SNLINE ADD *john doe*:this is what` (typed
+directly on IRC, no expiry) was accepted with a normal success reply,
+but the stored reason ended up as just `"this"` — `"is what"` silently
+discarded, no warning either way. `SQLINE ADD` doesn't have this issue.
+Not something to patch in Anope's source; the panel works around it by
+always sending an explicit expiry (defaults to 30d if left blank in the
+form).
+
+**Deleting an SNLINE by mask text can fail for the same reason** — Anope
+tokenizes the raw command on spaces before matching, so `SNLINE DEL
+*john doe*` looks for the mask `*john` and fails. `snline_del`/
+`sqline_del` delete by Anope's own stable per-entry ID instead
+(`SetSyntax` lists `id` as an explicit valid `DEL` key, and it's always
+a single space-free token) — both templates submit `e.id`, falling back
+to `e.mask` only if `akillids` is disabled on an install.
 
 **`DEFCON` has no read-only status query** — calling it with no level
 argument returns a plain `"No such command"` error, confirmed live.

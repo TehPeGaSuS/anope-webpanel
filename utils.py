@@ -344,12 +344,20 @@ def parse_xline_view(lines):
     here so this still works on installs where it's off.
       FLEXIBLE (confirmed live):
         "1: [I0MXEDTISB] *puta* -- created by James on Tue Aug 13 16:22:04 2024; does not expire ([James] Nick not allowed)"
+    SNLINE masks are realname/GECOS masks, which legitimately contain
+    spaces (confirmed live with a real `*john doe*` mask) — unlike AKILL
+    (user@host) and SQLINE (nick/channel) masks, which never do. The mask
+    group below is non-greedy `(.+?)` bounded by the literal " -- created
+    by " rather than `\\S+`, so it doesn't stop at the first space; an
+    earlier version used `\\S+` and silently dropped every multi-word-mask
+    entry from the parsed list (not an error — the line just failed to
+    match and vanished).
       FIXED (confirmed live):
         "Number  Mask           Creator  Created                   Expires            ID          Reason"
         "1       *snlinetest2*  PeGaSuS  Mon Jul 27 22:47:28 2026  expires in 7 days  15Z0YM4J7O  [PeGaSuS] short reason"
     """
     pattern_flexible = re.compile(
-        r'^\d+:\s+(?:\[(\S+)\]\s+)?(\S+)\s+--\s+created by\s+(\S+)\s+on\s+(.+?);\s+'
+        r'^\d+:\s+(?:\[(\S+)\]\s+)?(.+?)\s+--\s+created by\s+(\S+)\s+on\s+(.+?);\s+'
         r'(does not expire|expires (?:in|on) .+?)(?:\s+\((.+)\))?$'
     )
     entries = []

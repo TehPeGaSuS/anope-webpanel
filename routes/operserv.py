@@ -631,10 +631,16 @@ def snline_add():
 @login_required
 @oper_required
 def snline_del():
-    mask = request.form.get("mask", "").strip()
+    # Deleting by mask text breaks for any mask containing a space (Anope
+    # tokenizes the raw command on spaces before matching, same root cause
+    # as the ADD reason-truncation bug above) — SNLINE masks are realname
+    # masks, which legitimately can and do contain spaces. Delete by
+    # Anope's own stable per-entry ID instead (SetSyntax explicitly lists
+    # "id" as a valid DEL key), which is always a single space-free token.
+    target = request.form.get("target", "").strip()
     try:
-        rpc("anope.command", g.account, "OperServ", f"SNLINE DEL {mask}")
-        flash(f"SNLINE removed for {mask}.", "success")
+        rpc("anope.command", g.account, "OperServ", f"SNLINE DEL {target}")
+        flash("SNLINE removed.", "success")
     except AnopeError as e:
         flash(e.message, "error")
     return redirect(url_for("operserv.snline"))
@@ -679,10 +685,13 @@ def sqline_add():
 @login_required
 @oper_required
 def sqline_del():
-    mask = request.form.get("mask", "").strip()
+    # Delete by ID, same reasoning as snline_del — SQLINE masks (nick/
+    # channel masks) can't contain spaces in practice, but ID is just as
+    # reliable and keeps both pages consistent.
+    target = request.form.get("target", "").strip()
     try:
-        rpc("anope.command", g.account, "OperServ", f"SQLINE DEL {mask}")
-        flash(f"SQLINE removed for {mask}.", "success")
+        rpc("anope.command", g.account, "OperServ", f"SQLINE DEL {target}")
+        flash("SQLINE removed.", "success")
     except AnopeError as e:
         flash(e.message, "error")
     return redirect(url_for("operserv.sqline"))
