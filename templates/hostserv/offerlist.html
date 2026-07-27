@@ -35,6 +35,14 @@
     <div style="overflow-x:auto;">
     <table class="data-table">
       <thead>
+        {% if is_hs_oper %}
+        <tr>
+          <th>#</th>
+          <th>Offered VHost (template)</th>
+          <th>Reason</th>
+          <th style="text-align:right;"></th>
+        </tr>
+        {% else %}
         <tr>
           <th>#</th>
           <th>Offered VHost (template)</th>
@@ -42,14 +50,19 @@
           <th>Expiry</th>
           <th style="text-align:right;"></th>
         </tr>
+        {% endif %}
       </thead>
       <tbody>
         {% for o in offers %}
         <tr>
           <td class="font-mono" style="color:var(--text-muted);">{{ o.num }}</td>
           <td class="font-mono" style="color:var(--accent);">{{ o.offered }}</td>
+          {% if is_hs_oper %}
+          <td style="color:var(--text-muted); font-size:0.82rem;">{{ o.trailer or '—' }}</td>
+          {% else %}
           <td class="font-mono" style="font-size:0.82rem;">{{ o.yours }}</td>
           <td style="color:var(--text-muted); font-size:0.82rem;">{{ o.trailer }}</td>
+          {% endif %}
           <td style="text-align:right; white-space:nowrap;">
             <form method="POST" action="{{ url_for('hostserv.offerlist') }}" style="display:inline;">
               <input type="hidden" name="action" value="take">

@@ -286,6 +286,15 @@ requirement. The panel can't work around this (it's not something to
 patch around in Anope's source), so it catches the specific error and
 shows a clear explanation instead of the raw Anope message.
 
+**`OFFERLIST` and `OFFER LIST` return genuinely different reply shapes**
+despite listing the same underlying offers — they're different Anope
+command classes (`CommandHSOfferList` vs `CommandHSOffer`). Bare
+`OFFERLIST` includes a "your vhost preview" and an expiry phrase per
+entry; oper `OFFER LIST` has neither, just entry/template/optional
+reason, in both FIXED and FLEXIBLE layout. `parse_hs_offerlist()` has to
+try both shapes — don't assume two similarly-named commands share a
+format without checking each independently.
+
 ---
 
 ## Known limitations / roadmap

@@ -861,35 +861,43 @@ def parse_hs_list(lines):
 
 def parse_hs_offerlist(lines):
     """
-    Parses HostServ OFFERLIST / OFFER LIST output. Layout-sensitive —
-    turns out the ORIGINAL "N: template / preview -- trailer" assumption
-    (from an earlier session, docstring said "confirmed against live
-    output") was actually FLEXIBLE's real shape all along; it was dropped
-    entirely rather than kept alongside FIXED when this was "fixed"
-    earlier the same day using only a FIXED-layout account, so FLEXIBLE
-    regressed to zero entries. Lesson: add a branch, don't replace one.
-      FIXED (confirmed live):
-        "Current host offer list:"
+    Parses BOTH `HostServ OFFERLIST` (bare, user-facing) AND
+    `HostServ OFFER LIST` (oper subcommand) output — these looked
+    interchangeable from a docstring that only ever tested data from the
+    bare command, but they're genuinely different Anope command classes
+    (CommandHSOfferList vs CommandHSOffer) with different reply shapes,
+    confirmed live: OFFER LIST has no "your vhost preview" or "expires"
+    data at all, just entry/template/reason. The panel calls OFFERLIST
+    for regular users and OFFER LIST for opers (see routes/services.py),
+    so both shapes have to work or the oper view silently renders empty.
+      OFFERLIST FIXED (confirmed live):
         "Number  Offered vhost               Your vhost                    Expires          Reason"
         "1       users.ptirc.org.{account}   users.ptirc.org.claudetest3   does not expire"
         "2       users2.ptirc.org.{account}  users2.ptirc.org.claudetest3  does not expire  30d special reason text here"
-        "End of host offer list."
-      FLEXIBLE (confirmed live):
-        "Current host offer list:"
+      OFFERLIST FLEXIBLE (confirmed live):
         "1: users/{account} / users/claudetest3 -- does not expire"
         "2: test2.x / test2.x -- expires in 1 day (expiring offer reason)"
-        "End of host offer list."
+      OFFER LIST FIXED (confirmed live):
+        "Number  VHost                  Reason"
+        "1       users.PTirc.{account}  default"
+        "2       users/PTirc/{account}  "
+      OFFER LIST FLEXIBLE (confirmed live):
+        "1: users.PTirc.{account} (default)"
+        "2: users/PTirc/{account}"
     Expires is anchored on its known phrases (like OperServ's ignore list)
     since it's followed by an unlabeled free-text Reason column in FIXED.
-    FLEXIBLE puts an optional reason in trailing parens after the expiry
-    phrase — split it out so both layouts render identically.
+    "yours" is None for OFFER LIST entries (no such data exists) — the
+    template shows a placeholder for that case.
     """
-    pattern_flexible = re.compile(
+    pattern_flexible_full = re.compile(
         r'^(\d+):\s+(\S+)\s+/\s+(\S+)\s+--\s+(does not expire|expires (?:in|on) .+?)(?:\s+\((.+)\))?$'
     )
-    pattern_fixed = re.compile(
+    pattern_fixed_full = re.compile(
         r'^(\d+)\s+(\S+)\s+(\S+)\s+(does not expire|expires (?:in|on) \S.*?)(?:\s{2,}(.+))?$'
     )
+    pattern_flexible_simple = re.compile(r'^(\d+):\s+(\S+)(?:\s+\((.+)\))?$')
+    pattern_fixed_simple = re.compile(r'^(\d+)\s+(\S+)\s*(.*)$')
+
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
@@ -898,7 +906,8 @@ def parse_hs_offerlist(lines):
         first_word = line.split()[0].lower().rstrip(':')
         if first_word in ('current', 'number', 'end', 'no', 'host'):
             continue
-        m = pattern_flexible.match(line)
+
+        m = pattern_flexible_full.match(line)
         if m:
             expires = m.group(4).strip()
             reason = (m.group(5) or "").strip()
@@ -909,7 +918,8 @@ def parse_hs_offerlist(lines):
                 "trailer": f"{expires} — {reason}" if reason else expires,
             })
             continue
-        m = pattern_fixed.match(line)
+
+        m = pattern_fixed_full.match(line)
         if m:
             expires = m.group(4).strip()
             reason = (m.group(5) or "").strip()
@@ -918,6 +928,26 @@ def parse_hs_offerlist(lines):
                 "offered": m.group(2),
                 "yours":   m.group(3),
                 "trailer": f"{expires} — {reason}" if reason else expires,
+            })
+            continue
+
+        m = pattern_flexible_simple.match(line)
+        if m:
+            entries.append({
+                "num":     m.group(1),
+                "offered": m.group(2),
+                "yours":   None,
+                "trailer": (m.group(3) or "").strip(),
+            })
+            continue
+
+        m = pattern_fixed_simple.match(line)
+        if m:
+            entries.append({
+                "num":     m.group(1),
+                "offered": m.group(2),
+                "yours":   None,
+                "trailer": m.group(3).strip(),
             })
     return entries
 
