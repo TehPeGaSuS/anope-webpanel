@@ -15,6 +15,48 @@ For install/usage docs, see the [README](../README.md).
 
 ---
 
+## Session Updates (2026-07-27, cont'd) — CERT LIST parser fixed + Add Certificate UI was fundamentally wrong
+
+The one parser flagged as "not independently verified" in the previous
+entry — `parse_cert_list` — got resolved once the user connected to IRC
+over TLS with a real client certificate and ran `/msg NickServ CERT ADD`
+directly, producing real data to test against.
+
+**`parse_cert_list` was broken**, same shape of bug as everything else
+this session: the regex required the *entire* line to be pure hex, but
+real `CERT LIST`/`CERT VIEW` output is tabular (`Fingerprint [Creator
+Created] Description` columns trail the fingerprint), so it always
+returned zero entries. Fixed to extract just the leading hex run.
+
+**Bigger find: the "Add certificate" feature's whole UI shape was wrong**,
+not just the parser. Per `HELP CERT` and confirmed by reading
+`modules/nickserv/ns_cert.cpp` directly: self-service `CERT ADD` takes
+**zero arguments** and adds whatever fingerprint the *current live
+connection* is presenting — there is no way to register an arbitrary
+typed-in fingerprint for yourself (the two-arg form is oper-only, for
+modifying *someone else's* list). The panel's form let a user type a
+fingerprint into a text box and always called `CERT ADD <typed-value>`,
+which — confirmed live — fails every time with `"You are not using a
+client certificate."` regardless of what's typed, because Anope isn't
+reading the input at all in that failure path; it's checking the live
+connection, which the web request (correctly) doesn't have one of. This
+is a known, deliberate Anope behavior, not a bug in Anope —
+see [anope/anope#326](https://github.com/anope/anope/issues/326).
+
+Fixed by replacing the text field with a plain "Add my current
+certificate" button that calls bare `CERT ADD`, with a note that this only
+works if the account is *simultaneously* connected to IRC over TLS with
+that certificate at the moment the button is clicked (e.g. an IRC client
+with SASL EXTERNAL / certfp already connected, using the panel in a
+browser at the same time). Confirmed live this actually works end-to-end:
+`rpc_user`'s `pretenduser` correctly resolves the RPC call's `source` to
+that real live connection (not a synthetic pretend-user) when one exists,
+so `CERT ADD` picks up its genuine fingerprint — verified by calling it via
+RPC while the test connection was live and getting back "Fingerprint ...
+already present" with the *correct* real fingerprint, not a generic error.
+
+---
+
 ## Session Updates (2026-07-27, cont'd) — Full parser audit: 9 more broken list parsers found and fixed
 
 Prompted by a "did you check the other layouts too?" — the FLAGS/AKICK fix
@@ -93,11 +135,12 @@ Also cleaned up incidental cruft found while in there: `parse_ns_info`,
 `utils.py` (the second definition silently shadowing the first, which was
 dead code) — removed the dead copies.
 
-**What wasn't independently re-verified this pass**: `parse_cert_list`
-(NickServ CERT LIST) — couldn't produce real populated data without an
-actual TLS client-certificate IRC connection, which wasn't worth faking
-for this sweep. If cert-related pages ever look wrong, check this one
-first; it was never live-tested this session.
+**Update**: `parse_cert_list` (NickServ CERT LIST) — flagged above as
+unverified since it needs a real TLS client-certificate connection to
+produce live data. Resolved in the next entry below once the user
+connected one — also broken, and it surfaced a bigger UI-shape bug in the
+Add Certificate flow. See "CERT LIST parser fixed + Add Certificate UI was
+fundamentally wrong" above.
 
 ---
 

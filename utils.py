@@ -237,15 +237,30 @@ def parse_akill_list(lines):
 
 def parse_cert_list(lines):
     """
-    Format: header line, then one fingerprint per line.
+    Parses NickServ CERT LIST / VIEW output. Real format (confirmed live —
+    the original regex required the WHOLE line to be pure hex, but real
+    output is tabular with Description (LIST) or Creator/Created/
+    Description (VIEW) columns trailing the fingerprint, so it never
+    matched and always returned zero entries):
+      LIST: "Certificate list for PeGaSuS:"
+            "Fingerprint                                                       Description"
+            "afece0309b03476a80997d605f026789c987816e0d91cbabb1bf68e06c96b8da  "
+      VIEW: adds "Creator  Created" columns before Description.
+    Only the leading fingerprint is extracted (matches this function's
+    existing flat-list-of-strings return shape).
     """
+    pattern = re.compile(r'^([0-9a-fA-F]{16,})(?:\s|$)')
     certs = []
     for line in lines:
-        line = line.strip()
-        if not line or line.startswith("Certificate list") or line.startswith("End"):
+        line = strip_irc(line).strip()
+        if not line:
             continue
-        if re.match(r'^[0-9a-fA-F]{16,}$', line):
-            certs.append(line)
+        first_word = line.split()[0].lower()
+        if first_word in ('certificate', 'fingerprint'):
+            continue
+        m = pattern.match(line)
+        if m:
+            certs.append(m.group(1))
     return certs
 
 

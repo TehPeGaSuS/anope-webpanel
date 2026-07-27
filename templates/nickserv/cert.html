@@ -9,9 +9,13 @@
 
   <div class="card mb-5 p-4">
     <div class="section-title">Add certificate</div>
-    <form method="POST" action="{{ url_for('nickserv.cert_add') }}" class="flex gap-2">
-      <input type="text" name="fingerprint" placeholder="SHA-256 fingerprint" class="form-input font-mono">
-      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.75rem;">
+      Anope can only add the fingerprint of the certificate you're <em>currently</em> connected with —
+      there's no way to register one by typing it in. Connect to IRC over TLS with your client
+      certificate (identified as this account), then click below.
+    </p>
+    <form method="POST" action="{{ url_for('nickserv.cert_add') }}">
+      <button type="submit" class="btn btn-primary">Add my current certificate</button>
     </form>
   </div>
 

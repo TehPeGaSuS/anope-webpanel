@@ -33,13 +33,18 @@ def cert():
 @bp.route("/cert/add", methods=["POST"])
 @login_required
 def cert_add():
-    fingerprint = request.form.get("fingerprint", "").strip()
-    if not fingerprint:
-        flash("Fingerprint is required.", "error")
-        return redirect(url_for("nickserv.cert"))
+    # Self-service CERT ADD takes zero arguments and grabs the CURRENT
+    # connection's fingerprint — confirmed live, there is no way to add an
+    # arbitrary typed-in fingerprint for yourself (that previously always
+    # failed with "You are not using a client certificate"). This only
+    # succeeds if the account is simultaneously connected to IRC over TLS
+    # with a client certificate at the moment this is clicked — confirmed
+    # live that rpc_user's pretenduser correctly resolves to that real
+    # live connection's fingerprint when one exists. See also
+    # https://github.com/anope/anope/issues/326.
     try:
-        rpc("anope.command", g.account, "NickServ", f"CERT ADD {fingerprint}")
-        flash("Certificate added.", "success")
+        result = rpc("anope.command", g.account, "NickServ", "CERT ADD")
+        flash(result[0] if result else "Certificate added.", "success")
     except AnopeError as e:
         flash(e.message, "error")
     return redirect(url_for("nickserv.cert"))
