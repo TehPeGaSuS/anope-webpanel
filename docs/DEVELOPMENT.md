@@ -15,6 +15,92 @@ For install/usage docs, see the [README](../README.md).
 
 ---
 
+## Session Updates (2026-07-27, cont'd) — Full parser audit: 9 more broken list parsers found and fixed
+
+Prompted by a "did you check the other layouts too?" — the FLAGS/AKICK fix
+earlier only got tested because a user complaint pointed at them directly.
+A systematic sweep of every other list-style parser against real live
+output (same Fixed-layout test account) turned up **nine more parsers that
+were silently broken**, several of them previously marked "✅ done" or
+"confirmed against real output" in this very document from an earlier
+session — that documentation was wrong, and nothing caught it until this
+sweep actually re-ran them against fresh live data instead of trusting the
+prior claim. Lesson: "confirmed against live output" is a claim about one
+past moment, not a standing guarantee — Anope version differences alone are
+enough to silently invalidate it, and there's no test suite to catch a
+regression. If you touch any of these parsers again, re-verify against
+real captured output, don't just read this file and assume it's still true.
+
+Found and fixed (all in `utils.py`, all verified against real live output
+before/after):
+
+- **`parse_access_list`** (ChanServ numeric ACCESS LIST) — only handled
+  `N: mask = LEVEL`; real output is tabular `Number Level Mask
+  Description` with **Level and Mask in reversed column order** vs the
+  flexible form. Returned zero entries.
+- **`parse_xop_list`** (ChanServ VOP/HOP/AOP/SOP/QOP LIST) — same story,
+  only handled `N: mask`; real output is tabular `Number Mask
+  Description`. Returned zero entries.
+- **`parse_levels_list`** (ChanServ LEVELS LIST) — assumed `PRIVILEGE =
+  level`; real output has **no `=` sign at all** (`ACCESS_CHANGE  10`,
+  `TOPIC  (disabled)`, `ASSIGN  (founder only)`). Returned zero entries —
+  the Levels page has never shown anything on this Anope version.
+- **`parse_entrymsg_list`** (ChanServ ENTRYMSG LIST) — assumed `N:
+  message`; real output is tabular `Number Creator Created Message`.
+  Returned zero entries.
+- **`parse_log_list`** (ChanServ LOG) — assumed `N: command on service:
+  method`; real output is tabular `Number Service Command Method[
+  status]`. Returned zero entries. Also: the displayed `Command` column is
+  a short uppercase name (`FLAGS`) but re-submitting to add/remove a log
+  entry requires the full lowercase `service/command` form
+  (`chanserv/flags`) — confirmed live, `LOG #chan FLAGS MESSAGE` fails
+  ("FLAGS is not a valid command"). The parser now reconstructs the
+  working form so a delete button fed from parsed data actually functions
+  — this would otherwise have been a second, harder-to-notice bug
+  layered on top of the first (page looks fine, delete silently fails).
+- **`parse_cs_list`** (ChanServ channel search) — matched `#channel
+  (Description)` OR bare `#channel`, but real output has **no parens** —
+  it's tabular free text. Any channel with an actual description set was
+  **silently dropped from the results entirely** (the line matched
+  neither alternative), while undescribed channels happened to still work
+  — the kind of bug that looks fine in casual testing because the common
+  case (no description) passes.
+- **`parse_ns_list`** (NickServ LIST, oper) — assumed `nick (email)`; real
+  output never shows email at all (privacy) — it's tabular `Nick Account
+  Status`. Returned zero entries. Template updated to show Account/Status
+  instead of the never-actually-available Email column.
+- **`parse_ajoin_list`** (NickServ AJOIN LIST) — assumed `N: #channel
+  [key]`; real output is tabular `Number Channel Key`. Returned zero
+  entries.
+- **`parse_hs_list`** (HostServ LIST / WAITING) — despite being marked
+  "verified against real RPC output (2026-06-30)" in this doc, the
+  assumed `N: nick = vhost -- created by X at Y` format does not match
+  this Anope build's actual output at all: real output is tabular, and
+  **WAITING lacks the Creator column that LIST has** (pending requests
+  don't have an approver yet) — the two commands needed different
+  patterns. Returned zero entries for both.
+- **`parse_hs_offerlist`** (HostServ OFFERLIST) — same story, also marked
+  "confirmed against live output" previously. Real format is tabular
+  `Number Offered-vhost Your-vhost Expires Reason`, and — contradicting
+  the old note that claimed reason is never echoed back — **Reason is
+  populated** when set. Anchored on Expires' known phrases (`does not
+  expire` / `expires in ...` / `expires on ...`) to split it from the
+  unlabeled free-text Reason column that follows, same technique used
+  for OperServ's ignore list.
+
+Also cleaned up incidental cruft found while in there: `parse_ns_info`,
+`parse_ajoin_list`, and `parse_ns_list` were each **defined twice** in
+`utils.py` (the second definition silently shadowing the first, which was
+dead code) — removed the dead copies.
+
+**What wasn't independently re-verified this pass**: `parse_cert_list`
+(NickServ CERT LIST) — couldn't produce real populated data without an
+actual TLS client-certificate IRC connection, which wasn't worth faking
+for this sweep. If cert-related pages ever look wrong, check this one
+first; it was never live-tested this session.
+
+---
+
 ## Session Updates (2026-07-27, cont'd) — Confirm/reset flows fixed, critical vuln closed, base.html bug fixed
 
 While wiring up clickable email-confirmation links (register/email/resetpass),
@@ -421,7 +507,7 @@ LIMIT), and oper SENDALL/STAFF (broadcast memos).
 - Oper — All VHosts (LIST with pattern filter, manual SET/SETALL forms, per-row DEL/DELALL). Requires `hostserv/set` (SET/ACTIVATE/REJECT) and `hostserv/del` (DEL/DELALL) in opertype.
 - Oper — Waiting Requests (WAITING table, per-row Activate/Reject with optional reason)
 - Oper — Offer List management (OFFER ADD with expiry+reason, OFFER DEL per entry, OFFER CLEAR with confirm). Requires `hostserv/offer` in opertype.
-- `parse_hs_list` / `parse_hs_offerlist` verified against real RPC output (2026-06-30) — see notes below for the two bugs that were caught and fixed.
+- `parse_hs_list` / `parse_hs_offerlist` — the 2026-06-30 "verified against real RPC output" note below turned out to no longer hold; both were found broken again and re-fixed on 2026-07-27 against this Anope build's actual output — see the top of this document for the current fix.
 
 ### BotServ ✅ (new, full — was 0% coverage before 2026-07-27)
 - Per-channel: assign/unassign, all 10 kickers (BADWORDS/BOLDS/CAPS/COLORS/

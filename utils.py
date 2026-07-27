@@ -299,33 +299,72 @@ def parse_cs_info(lines):
 
 def parse_entrymsg_list(lines):
     """
-    Format: "N: message" or empty list message.
+    Parses ChanServ ENTRYMSG LIST output. Real format (confirmed live —
+    this docstring's original assumed "N: message" format doesn't match;
+    it's a tabular list like badwords/news, and returned zero entries
+    against real output):
+      "Entry message list for #clitest:"
+      "Number  Creator      Created                   Message"
+      "1       claudetest3  Mon Jul 27 17:35:30 2026  welcome test message"
+      "End of entry message list."
     """
-    pattern = re.compile(r'^\d+:\s+(.+)$')
+    pattern = re.compile(rf'^(\d+)\s+(\S+)\s+({DATE_RE})\s+(.+)$')
     entries = []
     for line in lines:
-        m = pattern.match(line.strip())
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('entry', 'number', 'end'):
+            continue
+        m = pattern.match(line)
         if m:
-            entries.append({"num": len(entries) + 1, "text": m.group(1)})
+            entries.append({
+                "num":     m.group(1),
+                "creator": m.group(2),
+                "created": m.group(3).strip(),
+                "text":    m.group(4).strip(),
+            })
     return entries
 
 
 def parse_log_list(lines):
     """
-    Format: "N: command on service: method"
-    e.g. "1: chanserv/flags on ChanServ: MESSAGE @"
+    Parses ChanServ LOG LIST output. Real format (confirmed live — the
+    originally assumed "N: command on service: method" never matched,
+    always returned zero entries):
+      "Log list for #clitest:"
+      "Number  Service   Command  Method"
+      "1       ChanServ  FLAGS    MESSAGE"
+      "2       ChanServ  ACCESS   NOTICE +"
+
+    Important: the displayed "Command" is a short uppercase name (FLAGS),
+    but re-submitting LOG to ADD/DEL requires the full lowercase
+    "service/command" form (chanserv/flags) — confirmed live: `LOG #chan
+    FLAGS MESSAGE` fails ("FLAGS is not a valid command"), only `LOG #chan
+    chanserv/flags MESSAGE` works. `command` here is reconstructed into
+    that working form so a delete button fed straight from this parser's
+    output actually functions.
     """
-    pattern = re.compile(r'^\d+:\s+(\S+)\s+on\s+(\S+):\s+(\S+)(?:\s+(\S+))?')
+    pattern = re.compile(r'^(\d+)\s+(\S+)\s+(\S+)\s+(.+)$')
     entries = []
     for line in lines:
-        line = line.strip().replace('\x1b', '')
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('log', 'number'):
+            continue
         m = pattern.match(line)
         if m:
+            service = m.group(2)
+            short_command = m.group(3)
+            method_status = m.group(4).strip().split(None, 1)
             entries.append({
-                "command": m.group(1),
-                "service": m.group(2),
-                "method":  m.group(3),
-                "status":  m.group(4) or "",
+                "command": f"{service.lower()}/{short_command.lower()}",
+                "service": service,
+                "method":  method_status[0],
+                "status":  method_status[1] if len(method_status) > 1 else "",
             })
     return entries
 
@@ -403,19 +442,34 @@ def parse_stats(lines):
 
 def parse_cs_list(lines):
     """
-    Format: "#channel (Description)" or "#channel"
-    First line is header, last is summary.
+    Parses ChanServ LIST output. Real format (confirmed live — the
+    originally assumed "#channel (Description)" silently DROPPED any
+    channel with a real description, since real output has no parens at
+    all — a tabular "Name  Description" with free trailing text):
+      "List of entries matching *:"
+      "Name      Description"
+      "#clitest  Test channel description"
+      "#opers    "
+      "End of list - 2/2 matches shown."
     """
-    pattern = re.compile(r'^(!?#\S+)(?:\s+\((.+)\))?$')
+    pattern = re.compile(r'^(!?#\S+)(?:\s+(.+))?$')
     channels = []
     for line in lines:
-        line = line.strip()
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('list', 'name', 'end'):
+            continue
         m = pattern.match(line)
         if m:
+            desc = (m.group(2) or "").strip()
+            if desc.startswith("(") and desc.endswith(")"):
+                desc = desc[1:-1]
             channels.append({
                 "channel": m.group(1).lstrip("!"),
                 "noexpire": m.group(1).startswith("!"),
-                "desc": m.group(2) or "",
+                "desc": desc,
             })
     return channels
 
@@ -447,29 +501,58 @@ def parse_memo_list(lines):
 
 def parse_access_list(lines):
     """
-    Format: "N: mask = LEVEL" (xOP level name)
-    e.g. "1: LunarBNC = HOP"
+    Parses ChanServ numeric ACCESS LIST output. Handles both layouts —
+    originally FLEXIBLE-only, confirmed broken (returned nothing) against
+    real FIXED-layout output:
+      "Access list for #opers:"
+      "Number  Level  Mask                  Description"
+      "1       10     *!*@test.example.com  "
+      "End of access list"
+    Note FIXED column order is Level then Mask — the reverse of FLEXIBLE's
+    "mask = LEVEL".
+
+    FLEXIBLE: "N: mask = LEVEL"  e.g. "1: LunarBNC = HOP"
     """
-    pattern = re.compile(r'^\d+:\s+(\S+)\s+=\s+(\S+)$')
+    pattern_flexible = re.compile(r'^\d+:\s+(\S+)\s+=\s+(\S+)$')
+    pattern_fixed = re.compile(r'^\d+\s+(\S+)\s+(\S+)(?:\s+.+)?$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
-        m = pattern.match(line)
+        if not line:
+            continue
+        m = pattern_flexible.match(line)
         if m:
             entries.append({"mask": m.group(1), "level": m.group(2)})
+            continue
+        m = pattern_fixed.match(line)
+        if m:
+            entries.append({"mask": m.group(2), "level": m.group(1)})
     return entries
 
 
 def parse_xop_list(lines):
     """
-    Format: "N: mask"
-    e.g. "3: TECO"
+    Parses ChanServ xOP (VOP/HOP/AOP/SOP/QOP) LIST output. Handles both
+    layouts — originally FLEXIBLE-only, confirmed broken against real
+    FIXED-layout output:
+      "AOP list for #clitest"
+      "Number  Mask                     Description"
+      "1       *!*@aoptest.example.com  "
+
+    FLEXIBLE: "N: mask"  e.g. "3: TECO"
     """
-    pattern = re.compile(r'^\d+:\s+(\S+)$')
+    pattern_flexible = re.compile(r'^\d+:\s+(\S+)$')
+    pattern_fixed = re.compile(r'^\d+\s+(\S+)(?:\s+.+)?$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
-        m = pattern.match(line)
+        if not line:
+            continue
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({"mask": m.group(1)})
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({"mask": m.group(1)})
     return entries
@@ -477,13 +560,24 @@ def parse_xop_list(lines):
 
 def parse_levels_list(lines):
     """
-    Format: "PRIVILEGE = level" or "PRIVILEGE = (founder only)"
+    Parses ChanServ LEVELS LIST output. Real format (confirmed live —
+    no "=" at all, this docstring's original assumed format was wrong
+    for this Anope version and returned zero entries against real output):
+      "Access level settings for channel #clitest:"
+      "Name           Level"
+      "ACCESS_CHANGE  10"
+      "KICK           -1"              (LEVELS SET KICK -1 → nobody, incl. founder)
+      "TOPIC          (disabled)"       (LEVELS DIS/DISABLE)
+      "ASSIGN         (founder only)"
     """
-    pattern = re.compile(r'^(\S+)\s+=\s+(.+)$')
+    pattern = re.compile(r'^(\S+)\s+(.+)$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
-        if line.startswith("Access level"):
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('access', 'name'):
             continue
         m = pattern.match(line)
         if m:
@@ -516,105 +610,82 @@ def parse_ns_info(lines):
 
 def parse_ajoin_list(lines):
     """
-    Format: "N: #channel" or "N: #channel key"
+    Parses NickServ AJOIN LIST output. Real format (confirmed live — the
+    originally assumed "N: #channel [key]" never matched, always returned
+    zero entries):
+      "claudetest3's auto join list:"
+      "Number  Channel   Key"
+      "1       #clitest  "
     """
-    pattern = re.compile(r'^\d+:\s+(\S+)(?:\s+(\S+))?$')
-    entries = []
-    for line in lines:
-        line = strip_irc(line).strip()
-        m = pattern.match(line)
-        if m:
-            entries.append({"channel": m.group(1), "key": m.group(2) or ""})
-    return entries
-
-
-def parse_ns_list(lines):
-    """
-    Format: "nick (email)" or tabular depending on layout.
-    """
-    pattern = re.compile(r'^(\S+)\s+\((.+)\)$')
-    entries = []
-    for line in lines:
-        line = strip_irc(line).strip()
-        if not line or line.startswith('List') or line.startswith('End'):
-            continue
-        m = pattern.match(line)
-        if m:
-            entries.append({"nick": m.group(1), "email": m.group(2)})
-        elif re.match(r'^\S+$', line):
-            entries.append({"nick": line, "email": ""})
-    return entries
-
-
-def parse_ns_info(lines):
-    """
-    Parse NS INFO output into a dict.
-    Options line parsed into a set of lowercase slugs.
-    """
-    info = {}
-    for line in lines:
-        line = strip_irc(line).strip()
-        if ':' not in line:
-            continue
-        key, _, value = line.partition(': ')
-        key = key.strip().lower().replace(' ', '_')
-        info[key] = value.strip()
-    if 'options' in info:
-        info['option_set'] = {
-            o.strip().lower().replace(' ', '_')
-            for o in info['options'].split(',')
-        }
-    else:
-        info['option_set'] = set()
-    return info
-
-
-def parse_ajoin_list(lines):
-    """Format: "N: #channel" or "N: #channel key" """
-    pattern = re.compile(r'^\d+:\s+(\S+)(?:\s+(\S+))?$')
-    entries = []
-    for line in lines:
-        line = strip_irc(line).strip()
-        m = pattern.match(line)
-        if m:
-            entries.append({"channel": m.group(1), "key": m.group(2) or ""})
-    return entries
-
-
-def parse_ns_list(lines):
-    """Format: "nick (email)" or just "nick" """
-    pattern = re.compile(r'^(\S+)\s+\((.+)\)$')
-    entries = []
-    for line in lines:
-        line = strip_irc(line).strip()
-        if not line or line.startswith('List') or line.startswith('End') or line.startswith('Nick'):
-            continue
-        m = pattern.match(line)
-        if m:
-            entries.append({"nick": m.group(1), "email": m.group(2)})
-        elif re.match(r'^\S+$', line):
-            entries.append({"nick": line, "email": ""})
-    return entries
-
-
-def parse_hs_list(lines):
-    """
-    Parses HostServ LIST / WAITING output.
-    Flexible format: "N: nick = vhost -- created by creator at created"
-    Creator can be EMPTY for pending WAITING requests (double space: "created by  at ..."),
-    confirmed against real output:
-      "1: galegovski = galegovki.com -- created by  at Sat Jun 27 18:06:45 2026"
-    so the creator group uses \\S* (zero or more), not \\S+.
-    """
-    pattern = re.compile(
-        r'^(\d+):\s+(\S+)\s+=\s+(\S+)\s+--\s+created by\s*(\S*)\s+at\s+(.+)$'
-    )
+    pattern = re.compile(r'^(\d+)\s+(\S+)(?:\s+(\S+))?$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
         if not line:
             continue
+        first_word = line.split()[0].lower()
+        if first_word == 'number':
+            continue
         m = pattern.match(line)
+        if m:
+            entries.append({"channel": m.group(2), "key": m.group(3) or ""})
+    return entries
+
+
+def parse_ns_list(lines):
+    """
+    Parses NickServ LIST output. Real format (confirmed live — no email is
+    shown at all, the originally assumed "nick (email)" format never
+    matched, always returned zero entries):
+      "List of entries matching *:"
+      "Nick         Account      Status"
+      "claudetest3  claudetest3  "
+      "claudetest4  claudetest4  Unconfirmed"
+      "End of list - 6/6 matches shown."
+    """
+    pattern = re.compile(r'^(\S+)\s+(\S+)(?:\s+(.+))?$')
+    entries = []
+    for line in lines:
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('list', 'end', 'nick'):
+            continue
+        m = pattern.match(line)
+        if m:
+            entries.append({
+                "nick":    m.group(1),
+                "account": m.group(2),
+                "status":  (m.group(3) or "").strip(),
+            })
+    return entries
+
+
+def parse_hs_list(lines):
+    """
+    Parses HostServ LIST / WAITING output. Real format (confirmed live —
+    the previously assumed "N: nick = vhost -- created by X at Y" format
+    (documented as "verified" on 2026-06-30) does not match this Anope
+    build's actual output at all and returns zero entries; real output is
+    tabular, and WAITING lacks the Creator column LIST has (pending
+    requests don't have an approver yet):
+      LIST:    "Number  Nick  VHost  Creator  Created"
+               "1       claudetest3  test.clitest.example.org  PeGaSuS  Mon Jul 27 17:43:08 2026"
+      WAITING: "Number  Nick  VHost  Created"
+               "1       claudetest3  test.clitest.example.org  Mon Jul 27 17:43:08 2026"
+    """
+    pattern_with_creator = re.compile(rf'^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+({DATE_RE})$')
+    pattern_no_creator = re.compile(rf'^(\d+)\s+(\S+)\s+(\S+)\s+({DATE_RE})$')
+    entries = []
+    for line in lines:
+        line = strip_irc(line).strip()
+        if not line:
+            continue
+        first_word = line.split()[0].lower()
+        if first_word in ('number', 'displayed', 'no'):
+            continue
+        m = pattern_with_creator.match(line)
         if m:
             entries.append({
                 "num":       m.group(1),
@@ -623,38 +694,54 @@ def parse_hs_list(lines):
                 "createdby": m.group(4),
                 "createdat": m.group(5).strip(),
             })
+            continue
+        m = pattern_no_creator.match(line)
+        if m:
+            entries.append({
+                "num":       m.group(1),
+                "nick":      m.group(2),
+                "vhost":     m.group(3),
+                "createdby": "",
+                "createdat": m.group(4).strip(),
+            })
     return entries
 
 
 def parse_hs_offerlist(lines):
     """
-    Parses HostServ OFFERLIST / OFFER LIST output.
-    Real format (confirmed against live output):
+    Parses HostServ OFFERLIST / OFFER LIST output. Real format (confirmed
+    live — the previously assumed "N: template / preview -- trailer"
+    format, documented as "confirmed against live output," does not match
+    this Anope build's actual output at all and returned zero entries;
+    also, contrary to the old note, Reason IS populated here when set):
       "Current host offer list:"
-      "1: users.PTirc.{account} / users.PTirc.James -- does not expire (default)"
-      "2: users/PTirc/{account} / users/PTirc/James -- does not expire"
+      "Number  Offered vhost               Your vhost                    Expires          Reason"
+      "1       users.ptirc.org.{account}   users.ptirc.org.claudetest3   does not expire"
+      "2       users2.ptirc.org.{account}  users2.ptirc.org.claudetest3  does not expire  30d special reason text here"
       "End of host offer list."
-    Pattern: "N: template / preview -- trailer"
-    The trailer is free text: "does not expire", "does not expire (default)",
-    or an expiry date — there's no separate reason field in this command
-    (OFFER ADD's reason isn't echoed back in OFFERLIST/OFFER LIST output).
+    Expires is anchored on its known phrases (like OperServ's ignore list)
+    since it's followed by an unlabeled free-text Reason column.
     """
-    pattern = re.compile(r'^(\d+):\s+(\S+)\s+/\s+(\S+)\s+--\s+(.+)$')
+    pattern = re.compile(
+        r'^(\d+)\s+(\S+)\s+(\S+)\s+(does not expire|expires (?:in|on) \S.*?)(?:\s{2,}(.+))?$'
+    )
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
         if not line:
             continue
-        if line.startswith("Current host offer list") or line.startswith("End of host offer list") \
-           or line.startswith("No matching entries") or line.startswith("Host offer list is empty"):
+        first_word = line.split()[0].lower()
+        if first_word in ('current', 'number', 'end', 'no', 'host'):
             continue
         m = pattern.match(line)
         if m:
+            expires = m.group(4).strip()
+            reason = (m.group(5) or "").strip()
             entries.append({
                 "num":     m.group(1),
                 "offered": m.group(2),
                 "yours":   m.group(3),
-                "trailer": m.group(4).strip(),
+                "trailer": f"{expires} — {reason}" if reason else expires,
             })
     return entries
 
