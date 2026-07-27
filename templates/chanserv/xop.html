@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} xOP{% endblock %}
+{% block content %}
+<div style="max-width:900px;">
+  <div class="mb-5">
+    <div class="page-title">xOP Lists</div>
+    <div class="page-subtitle">Voice, Halfop, Auto-op, SOP and QOP lists for {{ channel }}.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add entry</div>
+    <form method="POST" action="{{ url_for('chanserv.xop_add', channel=channel|chanurl) }}"
+          class="flex gap-2">
+      <select name="type" class="form-input" style="max-width:120px;">
+        {% for t in xop_types %}
+        <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="mask" placeholder="nick or mask"
+             class="form-input font-mono">
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+    {% for xtype in xop_types %}
+    <div class="card">
+      <div style="padding:0.6rem 1rem; border-bottom:1px solid var(--card-border); display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:0.75rem; font-weight:700; letter-spacing:0.06em;
+              color:{% if xtype == 'QOP' %}#f0a500
+              {% elif xtype == 'SOP' %}#bc8cff
+              {% elif xtype == 'AOP' %}var(--accent)
+              {% elif xtype == 'HOP' %}#3fb950
+              {% else %}var(--text-muted){% endif %};">
+          {{ xtype }}
+        </span>
+        <span style="font-size:0.75rem; color:var(--text-muted);">{{ lists[xtype]|length }}</span>
+      </div>
+      {% if lists[xtype] %}
+      <table class="data-table">
+        <tbody>
+          {% for e in lists[xtype] %}
+          <tr>
+            <td class="font-mono" style="color:var(--text); font-size:0.85rem;">{{ e.mask }}</td>
+            <td style="text-align:right; padding:0.4rem 0.75rem;">
+              <form method="POST" action="{{ url_for('chanserv.xop_del', channel=channel|chanurl) }}">
+                <input type="hidden" name="type" value="{{ xtype }}">
+                <input type="hidden" name="mask" value="{{ e.mask }}">
+                <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.5rem; font-size:0.7rem;">Del</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:0.75rem 1rem; color:var(--text-muted); font-size:0.82rem;">Empty.</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

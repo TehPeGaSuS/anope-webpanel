@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}OperServ — Seen{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+  <div class="mb-5">
+    <div class="page-title">Seen Database</div>
+    <div class="page-subtitle">Statistics and maintenance for the SEEN data used by the `seen` fantasy command.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    {% if result %}
+    {% for line in result %}
+    <div class="font-mono" style="font-size:0.82rem; color:var(--text); padding:0.2rem 0;">{{ line }}</div>
+    {% endfor %}
+    {% else %}
+    <div style="color:var(--text-muted); font-size:0.85rem;">No data.</div>
+    {% endif %}
+  </div>
+
+  <div class="card p-4" style="border-color:var(--danger);">
+    <div class="section-title">Clear old entries</div>
+    <form method="POST" class="flex gap-2" onsubmit="return confirm('Remove all SEEN entries older than this?');">
+      <input type="text" name="clear_time" placeholder="e.g. 30d" class="form-input" style="max-width:200px;">
+      <button type="submit" class="btn btn-danger" style="white-space:nowrap;">Clear</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

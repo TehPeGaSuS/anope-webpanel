@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Nick List{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div class="mb-5">
+    <div class="page-title">Nick List</div>
+    <div class="page-subtitle">Search registered nicks on the network.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <form method="GET" class="flex gap-2">
+      <input type="text" name="pattern" value="{{ pattern }}"
+             placeholder="Pattern (e.g. James*)" class="form-input" style="max-width:260px;">
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+  </div>
+
+  {# Direct oper lookup — jump straight to oper view for a known nick #}
+  <div class="card mb-4 p-4" style="border-color:var(--card-border);">
+    <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">Jump to nick</div>
+    <form method="GET" action="" id="jumpForm" class="flex gap-2">
+      <input type="text" id="jumpNick" placeholder="Exact nick…"
+             class="form-input font-mono" style="max-width:220px;">
+      <button type="button" class="btn btn-secondary"
+              onclick="var n=document.getElementById('jumpNick').value.trim(); if(n) window.location='/nickserv/oper/'+encodeURIComponent(n);">
+        View
+      </button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead><tr><th>Nick</th><th>Email</th><th></th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--accent);">{{ e.nick }}</td>
+          <td style="color:var(--text-muted); font-size:0.85rem;">{{ e.email or '—' }}</td>
+          <td style="text-align:right;">
+            <a href="{{ url_for('nickserv.oper_nick', nick=e.nick) }}"
+               class="btn btn-secondary" style="padding:0.15rem 0.5rem; font-size:0.75rem;">Manage</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif pattern %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No nicks found matching <span class="font-mono">{{ pattern }}</span>.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -26,25 +26,45 @@
   </div>
 
   {# ── Boolean toggles ── #}
+  {# option_set keys come from CS INFO "Options:" line, lowercased and space->underscore #}
+  {#
+    Slugs from Anope AddOption() strings: lowercase, spaces→underscores.
+    AUTOOP is inverted: Anope emits "No auto-op" when AUTOOP is OFF.
+    SECURE removed: not a real cs_set command in Anope 2.1 (only SECUREFOUNDER/SECUREOPS exist).
+    Tuple: (cs_set_name, slug, inverted, description)
+  #}
   {% set toggles = [
-    ('AUTOOP',        'autoop',         'Automatically give channel status to recognized users'),
-    ('KEEPTOPIC',     'topic_retention','Retain topic when channel becomes empty'),
-    ('PEACE',         'peace',          'Prevent users from kicking/banning those with higher access'),
-    ('PERSIST',       'persistent',     'Keep channel open even when empty'),
-    ('PRIVATE',       'private',        'Hide channel from CS LIST'),
-    ('RESTRICTED',    'restricted',     'Restrict access to users on the access list'),
-    ('SECURE',        'secure',         'Require users to be identified to NickServ'),
-    ('SECUREFOUNDER', 'secure_founder', 'Only the real founder can drop or change founder'),
-    ('SECUREOPS',     'secure_ops',     'Only give ops/voice to users on the access list'),
-    ('SIGNKICK',      'signed_kicks',   'Include nick of kicker in AKICK/kick messages'),
-    ('TOPICLOCK',     'topiclock',      'Only ops can change the topic'),
+    ('AUTOOP',        'no_auto-op',        true,  'Automatically give channel status to recognized users'),
+    ('KEEPMODES',     'keep_modes',        false, 'Retain channel modes when channel becomes empty'),
+    ('KEEPTOPIC',     'topic_retention',   false, 'Retain topic when channel becomes empty'),
+    ('PEACE',         'peace',             false, 'Prevent users from kicking/banning those with higher access'),
+    ('PERSIST',       'persistent',        false, 'Keep channel open even when empty'),
+    ('PRIVATE',       'private',           false, 'Hide channel from CS LIST'),
+    ('RESTRICTED',    'restricted_access', false, 'Restrict access to users on the access list'),
+    ('SECUREFOUNDER', 'secure_founder',    false, 'Only the real founder can drop or change founder'),
+    ('SECUREOPS',     'secure_ops',        false, 'Only give ops/voice to users on the access list'),
+    ('SIGNKICK',      'signed_kicks',      false, 'Include nick of kicker in AKICK/kick messages'),
+    ('TOPICLOCK',     'topic_lock',        false, 'Only ops can change the topic'),
+    ('NOEXPIRE',      'no_expiry',         false, 'Prevent channel from expiring'),
+    ('CHANSTATS',     'chanstats',         false, 'Enable chanstats statistics (requires chanstats module)'),
   ] %}
 
   <div class="card mb-5 p-4">
     <div class="section-title">Options</div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-      {% for cs_name, opt_key, desc in toggles %}
-      {% set is_on = opt_key in info.option_set %}
+      {% for cs_name, opt_key, inverted, desc in toggles %}
+      {# slug empty = Anope doesn't report this in INFO (e.g. SECURE) — show as unknown #}
+      {% if opt_key == '' %}
+        {% set is_unknown = true %}
+        {% set is_on = false %}
+      {% elif inverted %}
+        {# inverted: flag present means OFF (e.g. AUTOOP shows "No auto-op" when disabled) #}
+        {% set is_unknown = false %}
+        {% set is_on = opt_key not in info.option_set %}
+      {% else %}
+        {% set is_unknown = false %}
+        {% set is_on = opt_key in info.option_set %}
+      {% endif %}
       <div style="display:flex; align-items:center; justify-content:space-between;
                   background:var(--bg); border:1px solid var(--card-border); border-radius:4px;
                   padding:0.5rem 0.75rem;">
@@ -58,9 +78,10 @@
           <button type="submit" style="
             padding:0.2rem 0.6rem; border-radius:3px; font-size:0.72rem; font-weight:600;
             cursor:pointer; border:1px solid;
-            {% if is_on %}background:#1a3a2a; color:#3fb950; border-color:var(--success-border);
+            {% if is_unknown %}background:var(--pill-bg); color:var(--text-muted); border-color:var(--card-border);
+            {% elif is_on %}background:#1a3a2a; color:#3fb950; border-color:var(--success-border);
             {% else %}background:var(--pill-bg); color:var(--text-muted); border-color:var(--card-border);{% endif %}">
-            {{ 'ON' if is_on else 'OFF' }}
+            {% if is_unknown %}?{% elif is_on %}ON{% else %}OFF{% endif %}
           </button>
         </form>
       </div>

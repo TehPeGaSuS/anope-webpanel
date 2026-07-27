@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}BotServ — Network Bots{% endblock %}
+{% block content %}
+<div style="max-width:1000px;">
+  <div class="mb-5">
+    <div class="page-title">Network Bots</div>
+    <div class="page-subtitle">Oper — bots available for channels to assign.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add Bot</div>
+    <form method="POST" action="{{ url_for('botserv.bots_add') }}" class="flex gap-2" style="flex-wrap:wrap;">
+      <input type="text" name="nick" placeholder="Nick" class="form-input" style="max-width:160px;">
+      <input type="text" name="user" placeholder="Username" class="form-input" style="max-width:160px;">
+      <input type="text" name="host" placeholder="Hostname" class="form-input" style="max-width:200px;">
+      <input type="text" name="real" placeholder="Realname" class="form-input" style="max-width:200px;">
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    </form>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Rename / Change Bot</div>
+    <form method="POST" action="{{ url_for('botserv.bots_change') }}" class="flex gap-2" style="flex-wrap:wrap;">
+      <input type="text" name="oldnick" placeholder="Current nick" class="form-input" style="max-width:160px;">
+      <input type="text" name="newnick" placeholder="New nick" class="form-input" style="max-width:160px;">
+      <input type="text" name="user" placeholder="New username (optional)" class="form-input" style="max-width:180px;">
+      <input type="text" name="host" placeholder="New hostname (optional)" class="form-input" style="max-width:200px;">
+      <input type="text" name="real" placeholder="New realname (optional)" class="form-input" style="max-width:200px;">
+      <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Change</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead><tr><th>Nick</th><th>Mask</th><th>Realname</th><th></th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--text);">{{ e.nick }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.mask }}</td>
+          <td style="color:var(--text-muted); font-size:0.85rem;">{{ e.realname }}</td>
+          <td style="text-align:right; white-space:nowrap;">
+            <form method="POST" action="{{ url_for('botserv.bots_private') }}" style="display:inline;">
+              <input type="hidden" name="nick" value="{{ e.nick }}">
+              <input type="hidden" name="state" value="ON">
+              <button type="submit" class="btn btn-secondary">Make private</button>
+            </form>
+            <form method="POST" action="{{ url_for('botserv.bots_del') }}" style="display:inline;" onsubmit="return confirm('Delete bot {{ e.nick }}?');">
+              <input type="hidden" name="nick" value="{{ e.nick }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No bots found.</div>
+  {% endif %}
+</div>
+{% endblock %}

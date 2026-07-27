@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}BotServ — Bad Words — {{ channel }}{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div class="mb-5">
+    <div class="page-title">Bad Words — {{ channel }}</div>
+    <div class="page-subtitle">Words that trigger the bad words kicker when it's enabled.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add word</div>
+    <form method="POST" action="{{ url_for('botserv.badwords_add', channel=channel|chanurl) }}" class="flex gap-2">
+      <input type="text" name="word" placeholder="word" class="form-input" style="max-width:220px;">
+      <select name="kind" class="form-input" style="max-width:160px;">
+        <option value="">Any (default)</option>
+        <option value="SINGLE">Single (whole word only)</option>
+        <option value="START">Start of word</option>
+        <option value="END">End of word</option>
+      </select>
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card mb-5">
+    <table class="data-table">
+      <thead><tr><th>Word</th><th>Type</th><th></th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--text);">{{ e.word }}</td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.type }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('botserv.badwords_del', channel=channel|chanurl) }}">
+              <input type="hidden" name="num" value="{{ e.num }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('botserv.badwords_clear', channel=channel|chanurl) }}" onsubmit="return confirm('Clear the entire bad words list?');">
+    <button type="submit" class="btn btn-danger">Clear all</button>
+  </form>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No bad words configured.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -32,6 +32,13 @@
       }
     }
   </script>
+  <script>
+    // Apply theme before page renders to prevent FOUC
+    (function() {
+      var t = localStorage.getItem('theme') || 'light';
+      if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
   <style>
     :root {
       --accent:       {{ network_color }};
@@ -186,7 +193,7 @@
   {% set ch = request.view_args.channel if request.view_args and request.view_args.get('channel') else None %}
 
   {# ── ChanServ channel bar ── #}
-  {% if service == 'chanserv' and session.get('chanserv_channels') %}
+  {% if service in ('chanserv', 'botserv') and session.get('chanserv_channels') %}
   <div style="background:var(--nav); border-bottom:1px solid var(--nav-border);
               padding:0.4rem 1rem; display:flex; flex-wrap:wrap; gap:0.35rem; align-items:center;">
     {% for ch in session.chanserv_channels %}
@@ -211,15 +218,23 @@
     <aside style="width:180px; background:var(--sidebar-bg); border-right:1px solid var(--sidebar-border); flex-shrink:0;">
 
       {% if service == 'nickserv' %}
-        <a href="{{ url_for('nickserv.info') }}"   class="sidebar-link {{ 'active' if ep == 'nickserv.info' }}">Info</a>
-        <a href="{{ url_for('nickserv.cert') }}"   class="sidebar-link {{ 'active' if ep == 'nickserv.cert' }}">Certificates</a>
-        <a href="{{ url_for('nickserv.alist') }}"  class="sidebar-link {{ 'active' if ep == 'nickserv.alist' }}">Access List</a>
-        <a href="{{ url_for('nickserv.email') }}"  class="sidebar-link {{ 'active' if ep == 'nickserv.email' }}">Email</a>
+        <a href="{{ url_for('nickserv.info') }}"     class="sidebar-link {{ 'active' if ep == 'nickserv.info' }}">Info</a>
+        <a href="{{ url_for('nickserv.ns_set') }}"   class="sidebar-link {{ 'active' if ep == 'nickserv.ns_set' }}">Settings</a>
+        <a href="{{ url_for('nickserv.cert') }}"     class="sidebar-link {{ 'active' if ep == 'nickserv.cert' }}">Certificates</a>
+        <a href="{{ url_for('nickserv.alist') }}"    class="sidebar-link {{ 'active' if ep == 'nickserv.alist' }}">Access List</a>
+        <a href="{{ url_for('nickserv.ajoin') }}"    class="sidebar-link {{ 'active' if ep == 'nickserv.ajoin' }}">Auto Join</a>
+        <a href="{{ url_for('nickserv.email') }}"    class="sidebar-link {{ 'active' if ep == 'nickserv.email' }}">Email</a>
         <a href="{{ url_for('nickserv.password') }}" class="sidebar-link {{ 'active' if ep == 'nickserv.password' }}">Password</a>
+        {% if session.get('is_oper') %}
+        <a href="{{ url_for('nickserv.ns_list') }}"  class="sidebar-link {{ 'active' if ep == 'nickserv.ns_list' }}">Nick List</a>
+        <a href="{{ url_for('nickserv.getemail') }}" class="sidebar-link {{ 'active' if ep == 'nickserv.getemail' }}">Find by Email</a>
+        {% endif %}
 
       {% elif service == 'chanserv' %}
         <a href="{{ url_for('chanserv.index') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.index' }}">My Channels</a>
         <a href="{{ url_for('chanserv.cs_list') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.cs_list' }}">Search</a>
+        <a href="{{ url_for('chanserv.gstats') }}" class="sidebar-link {{ 'active' if ep == 'chanserv.gstats' }}">Global Stats</a>
+        <a href="{{ url_for('chanserv.gtop') }}"   class="sidebar-link {{ 'active' if ep == 'chanserv.gtop' }}">Network Top 10</a>
         {% if ch %}
         <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">{{ ch }}</div>
         <a href="{{ url_for('chanserv.set_options', channel=ch|chanurl) }}" class="sidebar-link {{ 'active' if ep == 'chanserv.set_options' }}">Settings</a>
@@ -231,55 +246,79 @@
         <a href="{{ url_for('chanserv.stats', channel=ch|chanurl) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.stats' }}">Stats</a>
         <a href="{{ url_for('chanserv.clone', channel=ch|chanurl) }}"      class="sidebar-link {{ 'active' if ep == 'chanserv.clone' }}">Clone</a>
         <a href="{{ url_for('chanserv.drop', channel=ch|chanurl) }}"       class="sidebar-link {{ 'active' if ep == 'chanserv.drop' }}">Drop</a>
+        <a href="{{ url_for('botserv.index', channel=ch|chanurl) }}"       class="sidebar-link {{ 'active' if ep in ('botserv.index', 'botserv.badwords') }}">Bot</a>
         {% endif %}
 
       {% elif service == 'memoserv' %}
-        <a href="{{ url_for('memoserv.index') }}" class="sidebar-link {{ 'active' if ep == 'memoserv.index' }}">Memos</a>
-        <a href="{{ url_for('memoserv.send') }}"  class="sidebar-link {{ 'active' if ep == 'memoserv.send' }}">Send Memo</a>
+        <a href="{{ url_for('memoserv.index') }}"    class="sidebar-link {{ 'active' if ep == 'memoserv.index' }}">Memos</a>
+        <a href="{{ url_for('memoserv.send') }}"     class="sidebar-link {{ 'active' if ep == 'memoserv.send' }}">Send Memo</a>
+        <a href="{{ url_for('memoserv.ignore') }}"   class="sidebar-link {{ 'active' if ep == 'memoserv.ignore' }}">Ignore List</a>
+        <a href="{{ url_for('memoserv.settings') }}" class="sidebar-link {{ 'active' if ep == 'memoserv.settings' }}">Settings</a>
+        {% if session.get('is_oper') %}
+        <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">Oper</div>
+        <a href="{{ url_for('memoserv.sendall') }}" class="sidebar-link {{ 'active' if ep == 'memoserv.sendall' }}">Send to All</a>
+        <a href="{{ url_for('memoserv.staff') }}"   class="sidebar-link {{ 'active' if ep == 'memoserv.staff' }}">Send to Staff</a>
+        {% endif %}
 
       {% elif service == 'hostserv' %}
-        <a href="{{ url_for('hostserv.index') }}" class="sidebar-link {{ 'active' if ep == 'hostserv.index' }}">VHost</a>
+        <a href="{{ url_for('hostserv.index') }}"     class="sidebar-link {{ 'active' if ep == 'hostserv.index' }}">VHost</a>
+        <a href="{{ url_for('hostserv.offerlist') }}" class="sidebar-link {{ 'active' if ep == 'hostserv.offerlist' }}">Offer List</a>
+        {% if session.get('is_oper') %}
+        <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">Oper</div>
+        <a href="{{ url_for('hostserv.admin') }}"   class="sidebar-link {{ 'active' if ep == 'hostserv.admin' }}">All VHosts</a>
+        <a href="{{ url_for('hostserv.waiting') }}" class="sidebar-link {{ 'active' if ep == 'hostserv.waiting' }}">Waiting Requests</a>
+        <a href="{{ url_for('hostserv.offer') }}"   class="sidebar-link {{ 'active' if ep == 'hostserv.offer' }}">Offer List (manage)</a>
+        {% endif %}
+
+      {% elif service == 'botserv' %}
+        {% if ch %}
+        <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">{{ ch }}</div>
+        <a href="{{ url_for('botserv.index', channel=ch|chanurl) }}"     class="sidebar-link {{ 'active' if ep == 'botserv.index' }}">Kickers &amp; Settings</a>
+        <a href="{{ url_for('botserv.badwords', channel=ch|chanurl) }}"  class="sidebar-link {{ 'active' if ep == 'botserv.badwords' }}">Bad Words</a>
+        <a href="{{ url_for('chanserv.set_options', channel=ch|chanurl) }}" class="sidebar-link" style="color:var(--text-muted);">&larr; Back to channel</a>
+        {% endif %}
+        {% if session.get('is_oper') %}
+        <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">Oper</div>
+        <a href="{{ url_for('botserv.bots') }}" class="sidebar-link {{ 'active' if ep == 'botserv.bots' }}">Network Bots</a>
+        {% endif %}
 
       {% elif service == 'operserv' %}
         <a href="{{ url_for('operserv.akill') }}"    class="sidebar-link {{ 'active' if ep == 'operserv.akill' }}">AKILL</a>
+        <a href="{{ url_for('operserv.chankill') }}" class="sidebar-link {{ 'active' if ep == 'operserv.chankill' }}">Chankill</a>
+        <a href="{{ url_for('operserv.ignore') }}"   class="sidebar-link {{ 'active' if ep == 'operserv.ignore' }}">Ignore List</a>
         <a href="{{ url_for('operserv.sessions') }}" class="sidebar-link {{ 'active' if ep == 'operserv.sessions' }}">Sessions</a>
+        <a href="{{ url_for('operserv.userlist') }}" class="sidebar-link {{ 'active' if ep == 'operserv.userlist' }}">User List</a>
+        <a href="{{ url_for('operserv.chanlist') }}" class="sidebar-link {{ 'active' if ep == 'operserv.chanlist' }}">Channel List</a>
+        <a href="{{ url_for('operserv.oper_list') }}" class="sidebar-link {{ 'active' if ep == 'operserv.oper_list' }}">Opers</a>
+        <a href="{{ url_for('operserv.stats') }}"    class="sidebar-link {{ 'active' if ep == 'operserv.stats' }}">Stats</a>
+        <a href="{{ url_for('operserv.seen') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.seen' }}">Seen</a>
         <a href="{{ url_for('operserv.news') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.news' }}">News</a>
+        <a href="{{ url_for('operserv.mode') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.mode' }}">Force Mode</a>
+        <a href="{{ url_for('operserv.jupe') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.jupe' }}">Jupe</a>
+        <a href="{{ url_for('operserv.noop') }}"     class="sidebar-link {{ 'active' if ep == 'operserv.noop' }}">Noop</a>
+        <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">Danger Zone</div>
+        <a href="{{ url_for('operserv.danger') }}"   class="sidebar-link {{ 'active' if ep == 'operserv.danger' }}" style="color:var(--danger);">Reload / Shutdown</a>
 
       {% else %}
         {# dashboard — no sidebar needed #}
       {% endif %}
 
     </aside>
+  {% endif %}
 
-    {# ── Content ── #}
-    <main class="flex-1 p-6 overflow-y-auto" style="background:var(--content-bg); min-width:0;" id="content">
-
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="mb-5 space-y-2" style="max-width:800px;">
-            {% for category, message in messages %}
-              <div class="px-4 py-3 rounded text-sm
-                {% if category == 'error' %}
-                  {{ '' }} " style="background:var(--error-bg); border:1px solid var(--error-border); color:var(--error-text);"
-                {% else %}
-                  {{ '' }} " style="background:var(--success-bg); border:1px solid var(--success-border); color:var(--success-text);"
-                {% endif %}>
-                {{ message }}
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-
+    {# ── Content ──
+         Deliberately a single {% block content %} definition (Jinja rejects
+         a block name defined twice in one file, even across dead if/else
+         branches) — logged-in gets the sidebar-flex wrapper above/below,
+         logged-out (e.g. password reset pages) gets a plain container. #}
+    <main class="{{ 'flex-1 p-6 overflow-y-auto' if session.get('account') else 'p-6' }}"
+          style="{{ 'background:var(--content-bg); min-width:0;' if session.get('account') else '' }}" id="content">
+      {% include "_flashes.html" %}
       {% block content %}{% endblock %}
     </main>
 
+  {% if session.get("account") %}
   </div>
-
-  {% else %}
-  <main class="p-6" id="content">
-    {% block content_unauthed %}{% endblock %}
-  </main>
   {% endif %}
 
 <script>

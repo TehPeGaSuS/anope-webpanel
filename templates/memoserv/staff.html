@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}MemoServ — Send to Staff{% endblock %}
+{% block content %}
+<div class="max-w-sm">
+  <div class="mb-5">
+    <div class="page-title">Send Memo to Staff</div>
+    <div class="page-subtitle">Oper — sends a memo to all services staff.</div>
+  </div>
+  <form method="POST" class="card p-5" style="display:flex; flex-direction:column; gap:1rem;">
+    <textarea name="text" rows="4" required placeholder="Memo text" class="form-input"></textarea>
+    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+      Send to Staff
+    </button>
+  </form>
+</div>
+{% endblock %}

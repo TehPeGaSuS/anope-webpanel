@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — Top 10{% if channel %} — {{ channel }}{% endif %}{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div class="mb-5">
+    <div class="page-title">Top 10 {{ 'Users — ' + channel if channel else '(Network)' }}</div>
+    <div class="page-subtitle">Most active users ranked by chanstats activity.</div>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr><th>#</th><th>Nick</th><th>Lines</th><th>Words</th><th>Letters</th><th>Smileys</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td style="color:var(--text-muted);">{{ e.rank }}</td>
+          <td class="font-mono" style="color:var(--text);">{{ e.nick }}</td>
+          <td>{{ e.lines }}</td>
+          <td>{{ e.words }}</td>
+          <td>{{ e.letters }}</td>
+          <td>{{ e.smileys }}</td>
+          <td>{{ e.actions }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No stats available yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

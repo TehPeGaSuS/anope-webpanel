@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}OperServ — Stats{% endblock %}
+{% block content %}
+<div style="max-width:900px;">
+  <div class="mb-5">
+    <div class="page-title">Stats</div>
+    <div class="page-subtitle">Status of services and the network.</div>
+  </div>
+
+  <div class="mb-4 flex gap-2" style="flex-wrap:wrap;">
+    {% for label, value in [('Overview',''), ('AKILL','AKILL'), ('Hash maps','HASH'), ('Passwords','PASSWORD'), ('Uplink','UPLINK'), ('Uptime','UPTIME'), ('All','ALL')] %}
+    <a href="{{ url_for('operserv.stats', mode=value) }}"
+       class="btn {{ 'btn-primary' if mode == value else 'btn-secondary' }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="card p-4">
+    {% if result %}
+    {% for line in result %}
+    <div class="font-mono" style="font-size:0.82rem; color:var(--text); padding:0.2rem 0;">{{ line }}</div>
+    {% endfor %}
+    {% else %}
+    <div style="color:var(--text-muted); font-size:0.85rem;">No data.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

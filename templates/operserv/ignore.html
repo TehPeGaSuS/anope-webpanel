@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}OperServ — Ignore List{% endblock %}
+{% block content %}
+<div style="max-width:1000px;">
+  <div class="mb-5">
+    <div class="page-title">Ignore List</div>
+    <div class="page-subtitle">Nicks/masks services will not respond to. Not enforced on IRC operators.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add Ignore</div>
+    <form method="POST" action="{{ url_for('operserv.ignore_add') }}" class="flex gap-2">
+      <input type="text" name="mask" placeholder="nick or nick!user@host" class="form-input" style="max-width:220px;">
+      <input type="text" name="expiry" placeholder="Duration (e.g. 1h, 0=perm)" class="form-input" style="max-width:180px;">
+      <input type="text" name="reason" placeholder="Reason (optional)" class="form-input">
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mask</th>
+          <th>Reason</th>
+          <th>Creator</th>
+          <th>Expires</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--text);">{{ e.mask }}</td>
+          <td style="color:var(--text-muted);">{{ e.reason or '—' }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.creator }}</td>
+          <td style="font-size:0.8rem; {% if 'does not expire' in e.expires %}color:#f85149;{% else %}color:#d29922;{% endif %}">{{ e.expires }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('operserv.ignore_del') }}">
+              <input type="hidden" name="mask" value="{{ e.mask }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">Ignore list is empty.</div>
+  {% endif %}
+</div>
+{% endblock %}

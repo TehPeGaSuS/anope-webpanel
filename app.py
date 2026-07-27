@@ -13,6 +13,7 @@ def create_app():
 
     app.config["ANOPE_RPC_URL"] = os.environ.get("ANOPE_RPC_URL", "http://127.0.0.1:8080/jsonrpc")
     app.config["ANOPE_RPC_TOKEN"] = os.environ.get("ANOPE_RPC_TOKEN", "")
+    app.config["PANEL_URL"] = os.environ.get("PANEL_URL", "").rstrip("/")
 
     # ---------- Template filters ----------
     @app.template_filter("chanurl")
@@ -46,12 +47,14 @@ def create_app():
     from routes.chanserv import bp as cs_bp
     from routes.services import memo_bp, host_bp
     from routes.operserv import bp as os_bp
+    from routes.botserv import bp as bs_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(ns_bp)
     app.register_blueprint(cs_bp)
     app.register_blueprint(memo_bp)
     app.register_blueprint(host_bp)
+    app.register_blueprint(bs_bp)
     app.register_blueprint(os_bp)
 
     # ---------- Dashboard ----------

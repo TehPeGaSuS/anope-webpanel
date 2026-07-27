@@ -7,8 +7,20 @@
       <div class="page-title">Memos</div>
       <div class="page-subtitle">Your incoming memos.</div>
     </div>
-    <a href="{{ url_for('memoserv.send') }}" class="btn btn-primary">Send memo</a>
+    <div class="flex gap-2">
+      <a href="{{ url_for('memoserv.ignore') }}" class="btn btn-secondary">Ignore List</a>
+      <a href="{{ url_for('memoserv.settings') }}" class="btn btn-secondary">Settings</a>
+      <a href="{{ url_for('memoserv.send') }}" class="btn btn-primary">Send memo</a>
+    </div>
   </div>
+
+  {% if info %}
+  <div class="card mb-5 p-4">
+    {% for line in info %}
+    <div style="font-size:0.82rem; color:var(--text-muted); padding:0.15rem 0;">{{ line }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {% if memos %}
   <div class="card">
@@ -61,5 +73,19 @@
   {% else %}
   <div style="color:var(--text-muted); font-size:0.85rem;">No memos.</div>
   {% endif %}
+
+  <div class="card mt-5 p-4">
+    <div class="section-title">Cancel / Check</div>
+    <div class="flex gap-2" style="flex-wrap:wrap;">
+      <form method="POST" action="{{ url_for('memoserv.cancel') }}" class="flex gap-2">
+        <input type="text" name="target" placeholder="Nick or #channel" class="form-input font-mono" style="max-width:200px;">
+        <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Cancel last unread memo</button>
+      </form>
+      <form method="POST" action="{{ url_for('memoserv.check') }}" class="flex gap-2">
+        <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:160px;">
+        <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Check if read</button>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

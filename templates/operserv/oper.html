@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}OperServ — Opers{% endblock %}
+{% block content %}
+<div style="max-width:1000px;">
+  <div class="mb-5">
+    <div class="page-title">Services Operators</div>
+    <div class="page-subtitle">Who can administer services, and at what level.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add Oper</div>
+    <form method="POST" action="{{ url_for('operserv.oper_add') }}" class="flex gap-2">
+      <input type="text" name="name" placeholder="Nick" class="form-input" style="max-width:220px;">
+      {% if types %}
+      <select name="type" class="form-input" style="max-width:220px;">
+        {% for t in types %}
+        <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <input type="text" name="type" placeholder="Opertype" class="form-input" style="max-width:220px;">
+      {% endif %}
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--text);">{{ e.name }}</td>
+          <td style="color:var(--text);">{{ e.type }}</td>
+          <td style="color:var(--text-muted); font-size:0.78rem;">
+            {% for n in e.notes %}<div>{{ n }}</div>{% endfor %}
+          </td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('operserv.oper_del') }}" onsubmit="return confirm('Remove oper privileges from {{ e.name }}?');">
+              <input type="hidden" name="name" value="{{ e.name }}">
+              <button type="submit" class="btn btn-danger">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No opers found.</div>
+  {% endif %}
+</div>
+{% endblock %}

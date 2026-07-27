@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Auto Join{% endblock %}
+{% block content %}
+<div style="max-width:700px;">
+  <div class="mb-5">
+    <div class="page-title">Auto Join</div>
+    <div class="page-subtitle">Channels you automatically join when you identify.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add channel</div>
+    <form method="POST" action="{{ url_for('nickserv.ajoin_add') }}" class="flex gap-2">
+      <input type="text" name="channel" placeholder="#channel" class="form-input font-mono">
+      <input type="text" name="key" placeholder="Key (optional)" class="form-input" style="max-width:140px;">
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead><tr><th>Channel</th><th>Key</th><th></th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--accent);">{{ e.channel }}</td>
+          <td class="font-mono" style="color:var(--text-muted);">{{ e.key or '—' }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('nickserv.ajoin_del') }}">
+              <input type="hidden" name="channel" value="{{ e.channel }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No auto join entries.</div>
+  {% endif %}
+</div>
+{% endblock %}

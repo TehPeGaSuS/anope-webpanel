@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Resend Confirmation Email{% endblock %}
+{% block content %}
+<div class="max-w-sm mx-auto mt-12">
+  <h1 class="page-title mb-1">Resend Confirmation Email</h1>
+  <p class="page-subtitle mb-6">Didn't get the registration email, or it expired? Request a new one.</p>
+  <form method="POST" class="card p-5" style="display:flex; flex-direction:column; gap:1rem;">
+    <div>
+      <label class="block text-xs font-medium" style="color:var(--text-muted); margin-bottom:0.375rem;">Nick / Account</label>
+      <input type="text" name="nick" required autofocus class="form-input" style="margin-bottom:0;">
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+      Resend
+    </button>
+  </form>
+  <div class="mt-4 text-center">
+    <a href="{{ url_for('auth.login') }}" style="font-size:0.75rem; color:var(--text-muted); text-decoration:none;">Back to login</a>
+  </div>
+</div>
+{% endblock %}

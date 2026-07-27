@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}HostServ — Offer List{% endblock %}
+{% block content %}
+<div style="max-width:760px;">
+  <div class="mb-5">
+    <div class="page-title">VHost Offer List</div>
+    <div class="page-subtitle">Pre-approved vhosts you can take instantly — no oper review needed.</div>
+  </div>
+
+  {% if offers %}
+  <div class="card mb-4">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Offered VHost (template)</th>
+          <th>Your VHost preview</th>
+          <th>Expiry</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in offers %}
+        <tr>
+          <td class="font-mono" style="color:var(--text-muted);">{{ o.num }}</td>
+          <td class="font-mono" style="color:var(--accent);">{{ o.offered }}</td>
+          <td class="font-mono" style="font-size:0.82rem;">{{ o.yours }}</td>
+          <td style="color:var(--text-muted); font-size:0.82rem;">{{ o.trailer }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('hostserv.offerlist') }}">
+              <input type="hidden" name="choice" value="{{ o.num }}">
+              <button type="submit" class="btn btn-primary" style="padding:0.15rem 0.5rem; font-size:0.75rem;">Take</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="padding:0.6rem 1rem; font-size:0.75rem; color:var(--text-muted); border-top:1px solid var(--card-border);">
+      Once a vhost is taken, you can't take another for 10 years.
+    </div>
+  </div>
+  {% else %}
+  <div class="card p-4" style="color:var(--text-muted);">
+    The host offer list is empty right now.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

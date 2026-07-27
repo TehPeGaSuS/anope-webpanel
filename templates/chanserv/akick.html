@@ -34,7 +34,7 @@
       <tbody>
         {% for e in entries %}
         <tr>
-          <td class="font-mono" style="color:#58a6ff;">{{ e.mask }}</td>
+          <td class="font-mono" style="color:var(--accent);">{{ e.mask }}</td>
           <td style="color:var(--text);">{{ e.reason or '—' }}</td>
           <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedby }}</td>
           <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedat }}</td>

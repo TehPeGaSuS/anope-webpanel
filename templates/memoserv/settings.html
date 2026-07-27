@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}MemoServ — Settings{% endblock %}
+{% block content %}
+<div style="max-width:600px;">
+  <div class="mb-5">
+    <div class="page-title">Memo Settings</div>
+    <div class="page-subtitle">Notification and limit preferences.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Notify</div>
+    <form method="POST" class="flex gap-2">
+      <input type="hidden" name="action" value="notify">
+      <select name="value" class="form-input" style="max-width:220px;">
+        <option value="ON">ON — logon, unaway, and new memos</option>
+        <option value="LOGON">LOGON — only at logon/unaway</option>
+        <option value="NEW">NEW — only when sent</option>
+        <option value="MAIL">MAIL — also notify by email</option>
+        <option value="NOMAIL">NOMAIL — don't notify by email</option>
+        <option value="OFF">OFF — no notifications</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Set</button>
+    </form>
+  </div>
+
+  <div class="card p-4">
+    <div class="section-title">Memo Limit</div>
+    <form method="POST" class="flex gap-2">
+      <input type="hidden" name="action" value="limit">
+      <input type="text" name="value" placeholder="Number, or NONE (max 20)" class="form-input" style="max-width:220px;">
+      <button type="submit" class="btn btn-primary">Set</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

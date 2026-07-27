@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Access (Numeric){% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div class="mb-5">
+    <div class="page-title">Numeric Access List</div>
+    <div class="page-subtitle">Level-based access entries for {{ channel }}.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add entry</div>
+    <form method="POST" action="{{ url_for('chanserv.access_num_add', channel=channel|chanurl) }}"
+          class="flex gap-2">
+      <input type="text" name="mask" placeholder="nick or mask"
+             class="form-input font-mono" style="max-width:220px;">
+      <input type="number" name="level" placeholder="Level (1-9999)" min="1" max="9999"
+             class="form-input" style="max-width:160px;">
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mask</th>
+          <th>Level</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr {% if e.mask == session.account %}style="background:#1a2a3a;"{% endif %}>
+          <td class="font-mono" style="color:var(--accent);">
+            {{ e.mask }}
+            {% if e.mask == session.account %}
+            <span style="font-size:0.7rem; color:var(--text-muted);">(you)</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--text);">{{ e.level }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('chanserv.access_num_del', channel=channel|chanurl) }}">
+              <input type="hidden" name="mask" value="{{ e.mask }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No numeric access entries.</div>
+  {% endif %}
+</div>
+{% endblock %}

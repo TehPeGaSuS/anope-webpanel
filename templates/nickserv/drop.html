@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Drop Nick{% endblock %}
+{% block content %}
+<div style="max-width:450px;">
+  <div class="mb-5">
+    <div class="page-title">Drop Nick</div>
+    <div class="page-subtitle">Permanently unregister your nick. This cannot be undone.</div>
+  </div>
+  <div class="card p-5" style="border-color:var(--danger);">
+    <form method="POST" style="display:grid; gap:1rem;">
+      <div>
+        <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">
+          Type <span class="font-mono" style="color:var(--danger);">{{ session.account }}</span> to confirm
+        </label>
+        <input type="text" name="confirm" required autofocus class="form-input font-mono">
+      </div>
+      <div>
+        <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">Password</label>
+        <input type="password" name="password" required class="form-input">
+      </div>
+      <button type="submit" class="btn btn-danger">Drop {{ session.account }}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}OperServ — Noop{% endblock %}
+{% block content %}
+<div class="max-w-sm">
+  <div class="mb-5">
+    <div class="page-title">Noop</div>
+    <div class="page-subtitle">SET kills every operator on a server and blocks new ones from opering up there. REVOKE lifts the restriction.</div>
+  </div>
+  <form method="POST" class="card p-5" style="border-color:var(--danger); display:flex; flex-direction:column; gap:1rem;">
+    <div>
+      <label class="block text-xs font-medium" style="color:var(--text-muted); margin-bottom:0.375rem;">Server name</label>
+      <input type="text" name="server" required placeholder="irc.example.org" class="form-input font-mono">
+    </div>
+    <div class="flex gap-2">
+      <button type="submit" name="action" value="SET" class="btn btn-danger" style="flex:1; justify-content:center;"
+              onclick="return confirm('This will kill every oper on this server and block new opers. Continue?');">
+        SET
+      </button>
+      <button type="submit" name="action" value="REVOKE" class="btn btn-secondary" style="flex:1; justify-content:center;">
+        REVOKE
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Settings{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div class="mb-5">
+    <div class="page-title">Nick Settings</div>
+    <div class="page-subtitle">Your NickServ options and preferences.</div>
+  </div>
+
+  {% if info %}
+
+  {# option_set keys from NS INFO "Options:" line, lowercased, space->underscore #}
+  {#
+    Slugs from Anope AddOption() strings, lowercased, space→underscore.
+    SECURE removed: not a real ns_set command in Anope 2.1 (no nickserv/set/secure module exists).
+    MSG → "Message mode" → slug message_mode (not "message").
+  #}
+  {% set toggles = [
+    ('AUTOOP',    'auto_op',      false, 'Automatically set channel status when you identify'),
+    ('KEEPMODES', 'keep_modes',   false, 'Restore your channel modes when you identify'),
+    ('PRIVATE',   'private',      false, 'Hide your nick from NS LIST'),
+    ('MSG',       'message_mode', false, 'Use PRIVMSG instead of NOTICE for services messages'),
+    ('NEVEROP',   'never_op',     false, "Prevent being added to any channel's access list"),
+    ('CHANSTATS', 'chanstats',    false, 'Track your chat activity for chanstats (letters/words/lines/smileys)'),
+  ] %}
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Options</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+      {% for ns_name, opt_key, inverted, desc in toggles %}
+      {% if opt_key == '' %}
+        {% set is_unknown = true %}
+        {% set is_on = false %}
+      {% else %}
+        {% set is_unknown = false %}
+        {% set is_on = opt_key in info.option_set %}
+      {% endif %}
+      <div style="display:flex; align-items:center; justify-content:space-between;
+                  background:var(--bg); border:1px solid var(--card-border); border-radius:4px;
+                  padding:0.5rem 0.75rem;">
+        <div>
+          <div class="font-mono" style="font-size:0.8rem; color:var(--text);">{{ ns_name }}</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">{{ desc }}</div>
+        </div>
+        <form method="POST" action="{{ url_for('nickserv.ns_set_toggle') }}" style="margin-left:1rem;">
+          <input type="hidden" name="option" value="{{ ns_name }}">
+          <input type="hidden" name="value" value="{{ 'OFF' if is_on else 'ON' }}">
+          <button type="submit" style="padding:0.2rem 0.6rem; border-radius:3px; font-size:0.72rem;
+            font-weight:600; cursor:pointer; border:1px solid;
+            {% if is_unknown %}background:var(--pill-bg); color:var(--text-muted); border-color:var(--card-border);
+            {% elif is_on %}background:#1a3a2a; color:#3fb950; border-color:#2ea043;
+            {% else %}background:var(--pill-bg); color:var(--text-muted); border-color:var(--card-border);{% endif %}">
+            {% if is_unknown %}?{% elif is_on %}ON{% else %}OFF{% endif %}
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {#
+    HIDE flags are stored as Anope extensions (HIDE_EMAIL, HIDE_MASK, HIDE_STATUS, HIDE_QUIT),
+    not in the NS INFO "Options:" line. Read from account.extensions instead.
+    Command keyword for the mask option is MASK, not USERMASK — "USERMASK" is only a
+    display label here; the form must submit "MASK" as the actual SET HIDE argument.
+    Tuple: (display_label, command_keyword, extension_key, description)
+  #}
+  {% set hide_opts = [
+    ('EMAIL',    'EMAIL',  'HIDE_EMAIL',  'Hide your email from NS INFO'),
+    ('USERMASK', 'MASK',   'HIDE_MASK',   'Hide your last seen mask from NS INFO'),
+    ('STATUS',   'STATUS', 'HIDE_STATUS', 'Hide your services access status from NS INFO'),
+    ('QUIT',     'QUIT',   'HIDE_QUIT',   'Hide your last quit message from NS INFO'),
+  ] %}
+  <div class="card mb-5 p-4">
+    <div class="section-title">Hide settings</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+      {% for label, cmd_kw, ext_key, desc in hide_opts %}
+      {% set is_on = account and account.extensions and account.extensions.get(ext_key) %}
+      <div style="display:flex; align-items:center; justify-content:space-between;
+                  background:var(--bg); border:1px solid var(--card-border); border-radius:4px;
+                  padding:0.5rem 0.75rem;">
+        <div>
+          <div class="font-mono" style="font-size:0.8rem; color:var(--text);">HIDE {{ label }}</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">{{ desc }}</div>
+        </div>
+        <form method="POST" action="{{ url_for('nickserv.ns_set_hide') }}" style="margin-left:1rem;">
+          <input type="hidden" name="what" value="{{ cmd_kw }}">
+          <input type="hidden" name="value" value="{{ 'OFF' if is_on else 'ON' }}">
+          <button type="submit" style="padding:0.2rem 0.6rem; border-radius:3px; font-size:0.72rem;
+            font-weight:600; cursor:pointer; border:1px solid;
+            {% if is_on %}background:#1a3a2a; color:#3fb950; border-color:#2ea043;
+            {% else %}background:var(--pill-bg); color:var(--text-muted); border-color:var(--card-border);{% endif %}">
+            {{ 'ON' if is_on else 'OFF' }}
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# AUTOLOGIN: stored as a boolean extension (AUTOLOGIN), not in the NS INFO Options: line #}
+  <div class="card mb-5 p-4">
+    <div class="section-title">Certificate auto-login</div>
+    {% set autologin_on = account and account.extensions and account.extensions.get('AUTOLOGIN') %}
+    <div style="display:flex; align-items:center; justify-content:space-between;
+                background:var(--bg); border:1px solid var(--card-border); border-radius:4px;
+                padding:0.5rem 0.75rem;">
+      <div>
+        <div class="font-mono" style="font-size:0.8rem; color:var(--text);">AUTOLOGIN</div>
+        <div style="font-size:0.72rem; color:var(--text-muted);">Auto-identify when connecting with a known SSL certificate (see Certificates page)</div>
+      </div>
+      <form method="POST" action="{{ url_for('nickserv.ns_set_toggle') }}" style="margin-left:1rem;">
+        <input type="hidden" name="option" value="AUTOLOGIN">
+        <input type="hidden" name="value" value="{{ 'OFF' if autologin_on else 'ON' }}">
+        <button type="submit" style="padding:0.2rem 0.6rem; border-radius:3px; font-size:0.72rem;
+          font-weight:600; cursor:pointer; border:1px solid;
+          {% if autologin_on %}background:#1a3a2a; color:#3fb950; border-color:#2ea043;
+          {% else %}background:var(--pill-bg); color:var(--text-muted); border-color:var(--card-border);{% endif %}">
+          {{ 'ON' if autologin_on else 'OFF' }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {# Preferences #}
+  <div class="card mb-5 p-4">
+    <div class="section-title">Preferences</div>
+    <div style="display:grid; gap:0.75rem;">
+
+      <form method="POST" action="{{ url_for('nickserv.ns_set_display') }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:120px; flex-shrink:0;">Display nick</label>
+        <input type="text" name="nick" value="{{ info.get('account','').split(' ')[0] }}"
+               class="form-input font-mono">
+        <button type="submit" class="btn btn-primary">Set</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('nickserv.ns_set_protect') }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:120px; flex-shrink:0;">Protection</label>
+        <select name="value" class="form-input" style="max-width:160px;">
+          <option value="ON">ON</option>
+          <option value="OFF">OFF</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Set</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('nickserv.ns_set_layout') }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:120px; flex-shrink:0;">Layout</label>
+        <select name="value" class="form-input" style="max-width:160px;">
+          <option value="FLEXIBLE" {{ 'selected' if 'flexible_layout' in info.option_set }}>FLEXIBLE</option>
+          <option value="FIXED" {{ 'selected' if 'fixed_layout' in info.option_set }}>FIXED</option>
+          <option value="MONOSPACE" {{ 'selected' if 'monospace_layout' in info.option_set }}>MONOSPACE</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Set</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('nickserv.ns_set_timezone') }}" class="flex gap-2 items-center">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:120px; flex-shrink:0;">Timezone</label>
+        <input type="text" name="timezone" value="{{ info.get('location','') }}"
+               class="form-input font-mono" placeholder="e.g. Europe/Paris">
+        <button type="submit" class="btn btn-primary">Set</button>
+      </form>
+
+      {% for opt, label, placeholder in [
+        ('LANGUAGE', 'Language', 'e.g. en_US.UTF-8 (blank = default)'),
+        ('GREET',    'Greet message', 'Shown when you join a channel with Greet enabled'),
+        ('MASTODON', 'Mastodon', '@user@instance.example'),
+        ('LOCATION', 'Location', ''),
+        ('URL',      'URL', 'https://...'),
+      ] %}
+      <form method="POST" action="{{ url_for('nickserv.ns_set_text') }}" class="flex gap-2 items-center">
+        <input type="hidden" name="option" value="{{ opt }}">
+        <label style="color:var(--text-muted); font-size:0.8rem; width:120px; flex-shrink:0;">{{ label }}</label>
+        <input type="text" name="value" class="form-input" placeholder="{{ placeholder }}">
+        <button type="submit" class="btn btn-primary">Set</button>
+      </form>
+      {% endfor %}
+
+    </div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Recover / Refresh</div>
+    <div class="flex gap-2" style="flex-wrap:wrap;">
+      <a href="{{ url_for('nickserv.recover') }}" class="btn btn-secondary">Recover a nick</a>
+      <form method="POST" action="{{ url_for('nickserv.ns_update') }}">
+        <button type="submit" class="btn btn-secondary">Update status now</button>
+      </form>
+    </div>
+  </div>
+
+  {# Danger zone #}
+  <div class="card p-4" style="border-color:var(--danger);">
+    <div class="section-title">Danger zone</div>
+    <a href="{{ url_for('nickserv.drop') }}" class="btn btn-danger">Drop nick</a>
+  </div>
+
+  {% else %}
+  <div style="color:var(--text-muted);">Could not load settings.</div>
+  {% endif %}
+</div>
+{% endblock %}

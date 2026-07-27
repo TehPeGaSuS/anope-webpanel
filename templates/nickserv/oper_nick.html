@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}NickServ — Oper: {{ target }}{% endblock %}
+{% block content %}
+<div style="max-width:720px;">
+  <div class="mb-5">
+    <div class="page-title">
+      <span style="color:var(--text-muted); font-weight:400; font-size:0.85em;">Oper /</span>
+      {{ target }}
+    </div>
+    <div class="page-subtitle">Account management for {{ target }}.</div>
+  </div>
+
+  {% if account %}
+
+  {# ── Account info ── #}
+  <div class="card mb-4">
+    <table class="data-table">
+      <tbody>
+        <tr>
+          <td style="color:var(--text-muted); width:160px;">Account</td>
+          <td class="font-mono" style="color:var(--accent);">{{ account.display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);">Email</td>
+          <td class="font-mono">{{ account.email or '—' }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted);">Registered</td>
+          <td style="font-size:0.85rem;">{{ account.registered | datetimeformat }}</td>
+        </tr>
+        {% if account.opertype %}
+        <tr>
+          <td style="color:var(--text-muted);">Oper type</td>
+          <td>
+            <span style="background:#1f3a5f; color:#58a6ff; font-size:0.75rem;
+                         padding:0.15rem 0.5rem; border-radius:3px;" class="font-mono">
+              {{ account.opertype.name }}
+            </span>
+          </td>
+        </tr>
+        {% endif %}
+        {% if ns_info.get('vhost') %}
+        <tr>
+          <td style="color:var(--text-muted);">VHost</td>
+          <td class="font-mono" style="font-size:0.85rem;">{{ ns_info.get('vhost') }}</td>
+        </tr>
+        {% endif %}
+        {% if ns_info.get('options') %}
+        <tr>
+          <td style="color:var(--text-muted);">Options</td>
+          <td style="font-size:0.82rem; color:var(--text-muted);">{{ ns_info.get('options') }}</td>
+        </tr>
+        {% endif %}
+        {% if ns_info.get('suspension') or 'suspended' in (ns_info.get('options','') | lower) %}
+        <tr>
+          <td style="color:var(--text-muted);">Suspension</td>
+          <td>
+            <span style="background:#3d1a1a; color:#f85149; font-size:0.78rem;
+                         padding:0.15rem 0.5rem; border-radius:3px;">SUSPENDED</span>
+            {% if ns_info.get('suspension') %}
+            <span style="color:var(--text-muted); font-size:0.8rem; margin-left:0.4rem;">
+              {{ ns_info.get('suspension') }}
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ── Grouped nicks ── #}
+  {% if account.nicks %}
+  <div class="card mb-4">
+    <div style="padding:0.6rem 1rem; border-bottom:1px solid var(--pill-bg);">
+      <div class="section-title" style="margin-bottom:0;">Grouped nicks</div>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr><th>Nick</th><th>Last seen</th><th>VHost</th></tr>
+      </thead>
+      <tbody>
+        {% for nick, data in account.nicks.items() %}
+        <tr>
+          <td class="font-mono" style="color:{% if nick == account.display %}var(--accent){% else %}var(--text){% endif %};">
+            {{ nick }}
+            {% if nick == account.display %}
+            <span style="font-size:0.7rem; color:var(--text-muted);">(display)</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--text-muted); font-size:0.82rem;">{{ data.lastseen | datetimeformat }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.82rem;">
+            {% if data.vhost %}{{ data.vhost.mask }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {# ── SASET: password ── #}
+  <div class="card mb-4 p-4">
+    <div class="section-title">Set password</div>
+    <form method="POST"
+          action="{{ url_for('nickserv.oper_saset_password', nick=target) }}"
+          class="flex gap-2">
+      <input type="password" name="password" placeholder="New password"
+             class="form-input" style="max-width:280px;" autocomplete="new-password">
+      <button type="submit" class="btn btn-primary">Set password</button>
+    </form>
+  </div>
+
+  {# ── SASET: NOEXPIRE + SUSPEND/UNSUSPEND side by side ── #}
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+
+    {# NOEXPIRE #}
+    <div class="card p-4">
+      <div class="section-title">No expiry</div>
+      <div style="display:flex; gap:0.5rem;">
+        <form method="POST" action="{{ url_for('nickserv.oper_saset_noexpire', nick=target) }}">
+          <input type="hidden" name="value" value="ON">
+          <button type="submit" class="btn btn-secondary">Enable</button>
+        </form>
+        <form method="POST" action="{{ url_for('nickserv.oper_saset_noexpire', nick=target) }}">
+          <input type="hidden" name="value" value="OFF">
+          <button type="submit" class="btn btn-secondary">Disable</button>
+        </form>
+      </div>
+      <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">
+        Current:
+        {% if 'no_expiry' in (ns_info.option_set if ns_info.option_set is defined else []) %}
+        <span style="color:#3fb950;">ON</span>
+        {% else %}
+        <span style="color:var(--text-muted);">OFF</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {# SUSPEND / UNSUSPEND #}
+    <div class="card p-4">
+      <div class="section-title">Suspend</div>
+      <form method="POST" action="{{ url_for('nickserv.oper_suspend', nick=target) }}"
+            style="display:grid; gap:0.4rem;">
+        <div class="flex gap-2">
+          <input type="text" name="expiry" placeholder="Expiry (e.g. 30d, blank=never)"
+                 class="form-input" style="flex:1; font-size:0.8rem;">
+        </div>
+        <div class="flex gap-2">
+          <input type="text" name="reason" placeholder="Reason"
+                 class="form-input" style="flex:1; font-size:0.8rem;">
+          <button type="submit" class="btn btn-danger">Suspend</button>
+        </div>
+      </form>
+      <form method="POST" action="{{ url_for('nickserv.oper_unsuspend', nick=target) }}"
+            style="margin-top:0.5rem;">
+        <button type="submit" class="btn btn-secondary" style="font-size:0.8rem;">Unsuspend</button>
+      </form>
+    </div>
+
+  </div>
+
+  {# ── DROP (danger zone) ── #}
+  <div class="card p-4" style="border-color:var(--danger);">
+    <div class="section-title" style="color:var(--danger);">Drop account</div>
+    <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.75rem;">
+      Drops the nick alias <span class="font-mono" style="color:var(--text);">{{ target }}</span> only —
+      other grouped nicks and the account remain unless this is the last alias.
+      Uses <span class="font-mono">OVERRIDE</span> — no confirmation code needed.
+      Dropping the display nick may be blocked by <span class="font-mono">preservedisplay</span> config.
+      Type the nick to confirm.
+    </p>
+    <form method="POST" action="{{ url_for('nickserv.oper_drop', nick=target) }}"
+          class="flex gap-2"
+          onsubmit="return confirm('Drop {{ target }} permanently?');">
+      <input type="text" name="confirm" placeholder="Type {{ target }} to confirm"
+             class="form-input font-mono" style="max-width:260px;">
+      <button type="submit" class="btn btn-danger">Drop</button>
+    </form>
+  </div>
+
+  {% else %}
+  <div class="card p-4" style="color:var(--text-muted);">
+    Nick <span class="font-mono">{{ target }}</span> not found or not registered.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

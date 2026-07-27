@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}OperServ — Channel List{% endblock %}
+{% block content %}
+<div style="max-width:1000px;">
+  <div class="mb-5">
+    <div class="page-title">Channel List</div>
+    <div class="page-subtitle">All channels currently in use on the network.</div>
+  </div>
+
+  <form method="GET" class="card mb-5 p-4 flex gap-2">
+    <input type="text" name="pattern" value="{{ pattern }}" placeholder="#pattern or nick" class="form-input">
+    <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Search</button>
+  </form>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Users</th>
+          <th>Modes</th>
+          <th>Topic</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--text);">{{ e.channel }}</td>
+          <td style="color:var(--text-muted);">{{ e.users }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">+{{ e.modes }}</td>
+          <td style="color:var(--text-muted); font-size:0.85rem;">{{ e.topic or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No channels found.</div>
+  {% endif %}
+</div>
+{% endblock %}

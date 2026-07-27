@@ -33,14 +33,14 @@
       </thead>
       <tbody>
         {% for e in entries %}
-        <tr {% if e.mask == session.account %}style="background:#1a2a3a;"{% endif %}>
-          <td class="font-mono" style="color:#58a6ff;">
+        <tr style="{% if e.mask == session.account %}background:var(--pill-bg);{% endif %}">
+          <td class="font-mono" style="color:var(--accent);">
             {{ e.mask }}
             {% if e.mask == session.account %}
-            <span style="font-size:0.7rem; color:#388bfd; font-family:sans-serif;">(you)</span>
+            <span style="font-size:0.7rem; color:var(--accent); font-family:sans-serif;">(you)</span>
             {% endif %}
           </td>
-          <td class="font-mono" style="color:#bc8cff; font-size:0.85rem;">{{ e.flags }}</td>
+          <td class="font-mono" style="color:var(--accent); font-size:0.85rem;">{{ e.flags }}</td>
           <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedby }}</td>
           <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.addedat }}</td>
           <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.comment }}</td>

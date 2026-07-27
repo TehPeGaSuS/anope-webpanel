@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}HostServ — All VHosts{% endblock %}
+{% block content %}
+<div style="max-width:900px;">
+  <div class="mb-5">
+    <div class="page-title">All VHosts</div>
+    <div class="page-subtitle">Oper view — every assigned vhost on the network.</div>
+  </div>
+
+  <div class="card mb-4 p-4">
+    <form method="GET" action="{{ url_for('hostserv.admin') }}" class="flex gap-2">
+      <input type="text" name="pattern" value="{{ pattern }}" placeholder="Filter nick/vhost mask (e.g. *.PTirc.org)"
+             class="form-input font-mono" style="flex:1;">
+      <button type="submit" class="btn btn-secondary">Filter</button>
+    </form>
+  </div>
+
+  {# Manual SET form — works on any nick, doesn't require it to be in the list below #}
+  <div class="card mb-4 p-4">
+    <div class="section-title">Set a VHost manually</div>
+    <form method="POST" action="{{ url_for('hostserv.set_vhost') }}" class="flex gap-2" style="margin-bottom:0.5rem;">
+      <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:160px;">
+      <input type="text" name="hostmask" placeholder="ident@host or host" class="form-input font-mono" style="flex:1;">
+      <button type="submit" class="btn btn-primary">SET</button>
+    </form>
+    <form method="POST" action="{{ url_for('hostserv.setall') }}" class="flex gap-2">
+      <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:160px;">
+      <input type="text" name="hostmask" placeholder="ident@host or host" class="form-input font-mono" style="flex:1;">
+      <button type="submit" class="btn btn-secondary">SETALL (all grouped nicks)</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nick</th>
+          <th>VHost</th>
+          <th>Creator</th>
+          <th>Created</th>
+          <th style="text-align:right; padding-right:1rem;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td style="color:var(--text-muted);">{{ e.num }}</td>
+          <td class="font-mono" style="color:var(--accent);">{{ e.nick }}</td>
+          <td class="font-mono" style="font-size:0.85rem;">{{ e.vhost }}</td>
+          <td style="color:var(--text-muted); font-size:0.82rem;">{{ e.createdby }}</td>
+          <td style="color:var(--text-muted); font-size:0.82rem;">{{ e.createdat }}</td>
+          <td style="text-align:right;">
+            <div style="display:inline-flex; gap:0.3rem;">
+              <form method="POST" action="{{ url_for('hostserv.delete_vhost') }}"
+                    onsubmit="return confirm('Delete vhost for {{ e.nick }}?');" style="display:inline;">
+                <input type="hidden" name="nick" value="{{ e.nick }}">
+                <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.5rem; font-size:0.75rem;">Del</button>
+              </form>
+              <form method="POST" action="{{ url_for('hostserv.delall') }}"
+                    onsubmit="return confirm('Delete vhost for {{ e.nick }} and all grouped nicks?');" style="display:inline;">
+                <input type="hidden" name="nick" value="{{ e.nick }}">
+                <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.5rem; font-size:0.75rem;">DelAll</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card p-4" style="color:var(--text-muted);">
+    No vhosts found{% if pattern %} matching <span class="font-mono">{{ pattern }}</span>{% endif %}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

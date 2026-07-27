@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}ChanServ — {{ channel }} Levels{% endblock %}
+{% block content %}
+<div style="max-width:800px;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+    <div>
+      <div class="page-title">Access Levels</div>
+      <div class="page-subtitle">Required level for each privilege in {{ channel }}.</div>
+    </div>
+    <form method="POST" action="{{ url_for('chanserv.levels_reset_all', channel=channel|chanurl) }}">
+      <button type="submit" class="btn btn-secondary"
+              onclick="return confirm('Reset all levels to defaults?')">Reset all</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Privilege</th>
+          <th>Level</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--accent); font-size:0.85rem;">{{ e.privilege }}</td>
+          <td style="color:
+            {% if e.level == '(founder only)' %}#d29922
+            {% elif e.level == '9999' %}var(--text-muted)
+            {% else %}var(--text){% endif %}; font-family:'JetBrains Mono',monospace; font-size:0.85rem;">
+            {{ e.level }}
+          </td>
+          <td style="text-align:right;">
+            <div style="display:flex; gap:0.4rem; justify-content:flex-end; align-items:center;">
+              <form method="POST" action="{{ url_for('chanserv.levels_set', channel=channel|chanurl) }}"
+                    class="flex gap-1">
+                <input type="hidden" name="privilege" value="{{ e.privilege }}">
+                <input type="number" name="level" value="{{ e.level if e.level not in ['(founder only)', '9999'] else '' }}"
+                       placeholder="Level" min="1" max="10000"
+                       class="form-input font-mono" style="width:90px; padding:0.25rem 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding:0.25rem 0.5rem;">Set</button>
+              </form>
+              <form method="POST" action="{{ url_for('chanserv.levels_reset', channel=channel|chanurl) }}">
+                <input type="hidden" name="privilege" value="{{ e.privilege }}">
+                <button type="submit" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.7rem;">Reset</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">No level data available.</div>
+  {% endif %}
+</div>
+{% endblock %}

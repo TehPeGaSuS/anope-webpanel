@@ -33,6 +33,23 @@ def _channel_info(channel):
     return parse_cs_info(result)
 
 
+def _modes_render(channel, ci, page=1, key=None, status_result=None):
+    """Build paginated render_template call for modes.html."""
+    per_page = 100
+    users_page = []
+    total_users = 0
+    if ci and ci.get("users"):
+        total_users = len(ci["users"])
+        start = (page - 1) * per_page
+        users_page = ci["users"][start:start + per_page]
+    total_pages = max(1, (total_users + per_page - 1) // per_page)
+    return render_template("chanserv/modes.html",
+                           channel=chan(channel), ci=ci,
+                           users_page=users_page, page=page,
+                           total_pages=total_pages, total_users=total_users,
+                           key=key, status_result=status_result)
+
+
 # ── Channel list ──────────────────────────────────────────────────────────────
 
 @bp.route("/")
@@ -57,7 +74,16 @@ def index():
 def access(channel):
     try:
         result = rpc("anope.command", g.account, "ChanServ", f"FLAGS {chan(channel)} LIST * ALL")
+        # DEBUG: Log raw response for troubleshooting
+        import sys
+        print(f"[DEBUG] FLAGS LIST response for {chan(channel)}:", file=sys.stderr)
+        print(f"[DEBUG] Raw result type: {type(result)}", file=sys.stderr)
+        print(f"[DEBUG] Raw result: {result}", file=sys.stderr)
+        if isinstance(result, list):
+            for i, line in enumerate(result):
+                print(f"[DEBUG]   Line {i}: {repr(line)}", file=sys.stderr)
         entries = parse_flags_list(result)
+        print(f"[DEBUG] Parsed {len(entries)} entries", file=sys.stderr)
     except AnopeError as e:
         flash(e.message, "error")
         entries = []
@@ -96,7 +122,16 @@ def access_del(channel):
 def akick(channel):
     try:
         result = rpc("anope.command", g.account, "ChanServ", f"AKICK {chan(channel)} VIEW")
+        # DEBUG: Log raw response for troubleshooting
+        import sys
+        print(f"[DEBUG] AKICK VIEW response for {chan(channel)}:", file=sys.stderr)
+        print(f"[DEBUG] Raw result type: {type(result)}", file=sys.stderr)
+        print(f"[DEBUG] Raw result: {result}", file=sys.stderr)
+        if isinstance(result, list):
+            for i, line in enumerate(result):
+                print(f"[DEBUG]   Line {i}: {repr(line)}", file=sys.stderr)
         entries = parse_akick_view(result)
+        print(f"[DEBUG] Parsed {len(entries)} entries", file=sys.stderr)
     except AnopeError as e:
         flash(e.message, "error")
         entries = []
@@ -136,12 +171,13 @@ def akick_del(channel):
 @bp.route("/<channel>/modes")
 @login_required
 def modes(channel):
+    page = max(1, int(request.args.get("page", 1)))
+    ci = None
     try:
-        ci = rpc("anope.channel", channel)
+        ci = rpc("anope.channel", chan(channel))
     except AnopeError as e:
         flash(e.message, "error")
-        ci = None
-    return render_template("chanserv/modes.html", channel=chan(channel), ci=ci)
+    return _modes_render(channel, ci, page=page)
 
 
 # ── Settings (CS SET) ─────────────────────────────────────────────────────────
@@ -163,7 +199,7 @@ def set_option(channel):
     option = request.form.get("option", "").strip()
     value  = request.form.get("value", "").strip()
     try:
-        rpc("anope.command", g.account, "ChanServ", f"SET {chan(channel)} {option} {value}")
+        rpc("anope.command", g.account, "ChanServ", f"SET {option} {chan(channel)} {value}")
         flash(f"{option} updated.", "success")
     except AnopeError as e:
         flash(e.message, "error")
@@ -175,7 +211,7 @@ def set_option(channel):
 def set_founder(channel):
     founder = request.form.get("founder", "").strip()
     try:
-        rpc("anope.command", g.account, "ChanServ", f"SET {chan(channel)} FOUNDER {founder}")
+        rpc("anope.command", g.account, "ChanServ", f"SET FOUNDER {chan(channel)} {founder}")
         flash(f"Founder changed to {founder}.", "success")
     except AnopeError as e:
         flash(e.message, "error")
@@ -187,7 +223,7 @@ def set_founder(channel):
 def set_successor(channel):
     successor = request.form.get("successor", "").strip()
     try:
-        rpc("anope.command", g.account, "ChanServ", f"SET {chan(channel)} SUCCESSOR {successor}")
+        rpc("anope.command", g.account, "ChanServ", f"SET SUCCESSOR {chan(channel)} {successor}")
         flash(f"Successor set to {successor}.", "success")
     except AnopeError as e:
         flash(e.message, "error")
@@ -199,7 +235,7 @@ def set_successor(channel):
 def set_desc(channel):
     desc = request.form.get("desc", "").strip()
     try:
-        rpc("anope.command", g.account, "ChanServ", f"SET {chan(channel)} DESC {desc}")
+        rpc("anope.command", g.account, "ChanServ", f"SET DESCRIPTION {chan(channel)} {desc}")
         flash("Description updated.", "success")
     except AnopeError as e:
         flash(e.message, "error")
@@ -211,7 +247,7 @@ def set_desc(channel):
 def set_url(channel):
     url_val = request.form.get("url", "").strip()
     try:
-        rpc("anope.command", g.account, "ChanServ", f"SET {chan(channel)} URL {url_val}")
+        rpc("anope.command", g.account, "ChanServ", f"SET URL {chan(channel)} {url_val}")
         flash("URL updated.", "success")
     except AnopeError as e:
         flash(e.message, "error")
@@ -223,7 +259,7 @@ def set_url(channel):
 def set_email(channel):
     email = request.form.get("email", "").strip()
     try:
-        rpc("anope.command", g.account, "ChanServ", f"SET {chan(channel)} EMAIL {email}")
+        rpc("anope.command", g.account, "ChanServ", f"SET EMAIL {chan(channel)} {email}")
         flash("Email updated.", "success")
     except AnopeError as e:
         flash(e.message, "error")
@@ -235,7 +271,7 @@ def set_email(channel):
 def set_bantype(channel):
     bantype = request.form.get("bantype", "").strip()
     try:
-        rpc("anope.command", g.account, "ChanServ", f"SET {chan(channel)} BANTYPE {bantype}")
+        rpc("anope.command", g.account, "ChanServ", f"SET BANTYPE {chan(channel)} {bantype}")
         flash(f"Ban type set to {bantype}.", "success")
     except AnopeError as e:
         flash(e.message, "error")
@@ -370,6 +406,34 @@ def unban(channel):
     return redirect(url_for("chanserv.modes", channel=chanurl(chan(channel))))
 
 
+# ── Down / Up ─────────────────────────────────────────────────────────────────
+
+@bp.route("/<channel>/down", methods=["POST"])
+@login_required
+def down(channel):
+    nick = request.form.get("nick", "").strip()
+    cmd = f"DOWN {chan(channel)}" + (f" {nick}" if nick else "")
+    try:
+        rpc("anope.command", g.account, "ChanServ", cmd)
+        flash("Status removed.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.modes", channel=chanurl(chan(channel))))
+
+
+@bp.route("/<channel>/up", methods=["POST"])
+@login_required
+def up(channel):
+    nick = request.form.get("nick", "").strip()
+    cmd = f"UP {chan(channel)}" + (f" {nick}" if nick else "")
+    try:
+        rpc("anope.command", g.account, "ChanServ", cmd)
+        flash("Status updated.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.modes", channel=chanurl(chan(channel))))
+
+
 # ── Kick ──────────────────────────────────────────────────────────────────────
 
 @bp.route("/<channel>/kick", methods=["POST"])
@@ -454,10 +518,10 @@ def getkey(channel):
     except AnopeError as e:
         flash(e.message, "error")
     try:
-        ci = rpc("anope.channel", channel)
+        ci = rpc("anope.channel", chan(channel))
     except AnopeError:
         ci = None
-    return render_template("chanserv/modes.html", channel=chan(channel), ci=ci, key=key)
+    return _modes_render(channel, ci, key=key)
 
 
 # ── STATUS ────────────────────────────────────────────────────────────────────
@@ -474,11 +538,10 @@ def status(channel):
     except AnopeError as e:
         flash(e.message, "error")
     try:
-        ci = rpc("anope.channel", channel)
+        ci = rpc("anope.channel", chan(channel))
     except AnopeError:
         ci = None
-    return render_template("chanserv/modes.html",
-                           channel=chan(channel), ci=ci, status_result=status_result)
+    return _modes_render(channel, ci, status_result=status_result)
 
 
 # ── TOPIC ─────────────────────────────────────────────────────────────────────
@@ -518,8 +581,10 @@ def mode(channel):
 @login_required
 def ban(channel):
     mask   = request.form.get("mask", "").strip()
+    expiry = request.form.get("expiry", "").strip()
     reason = request.form.get("reason", "").strip()
-    cmd = f"BAN {chan(channel)} {mask}"
+    prefix = f"+{expiry} " if expiry else ""
+    cmd = f"BAN {chan(channel)} {prefix}{mask}"
     if reason:
         cmd += f" {reason}"
     try:
@@ -575,7 +640,8 @@ def chstatus(channel):
         return redirect(url_for("chanserv.modes", channel=chanurl(chan(channel))))
     try:
         rpc("anope.command", g.account, "ChanServ", f"{cmd} {chan(channel)} {nick}")
-        flash(f"{cmd} applied to {nick}.", "success")
+        action = "given to" if not cmd.startswith("DE") else "taken from"
+        flash(f"{cmd} {action} {nick}.", "success")
     except AnopeError as e:
         flash(e.message, "error")
     return redirect(url_for("chanserv.modes", channel=chanurl(chan(channel))))
@@ -593,7 +659,63 @@ def stats(channel):
         my_stats = parse_stats(result)
     except AnopeError as e:
         flash(e.message, "error")
-    return render_template("chanserv/stats.html", channel=chan(channel), stats=my_stats)
+    try:
+        ci = _channel_info(channel)
+        chanstats_on = "chanstats" in ci.get("option_set", set())
+    except AnopeError:
+        chanstats_on = False
+    return render_template("chanserv/stats.html", channel=chan(channel), stats=my_stats, chanstats_on=chanstats_on)
+
+
+@bp.route("/<channel>/set/chanstats", methods=["POST"])
+@login_required
+def set_chanstats(channel):
+    state = request.form.get("state", "OFF").upper()
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"SET CHANSTATS {chan(channel)} {state}")
+        flash(f"Chanstats {state.lower()} for {chan(channel)}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.stats", channel=chanurl(chan(channel))))
+
+
+@bp.route("/<channel>/top")
+@login_required
+def top(channel):
+    from utils import parse_cs_top
+    entries = []
+    try:
+        result = rpc("anope.command", g.account, "ChanServ", f"TOP10 {chan(channel)}")
+        entries = parse_cs_top(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+    return render_template("chanserv/top.html", channel=chan(channel), entries=entries, scope="channel")
+
+
+@bp.route("/gstats")
+@login_required
+def gstats():
+    from utils import parse_stats
+    my_stats = None
+    try:
+        result = rpc("anope.command", g.account, "ChanServ", f"GSTATS {g.account}")
+        my_stats = parse_stats(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+    return render_template("chanserv/gstats.html", stats=my_stats)
+
+
+@bp.route("/gtop")
+@login_required
+def gtop():
+    from utils import parse_cs_top
+    entries = []
+    try:
+        result = rpc("anope.command", g.account, "ChanServ", "GTOP10")
+        entries = parse_cs_top(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+    return render_template("chanserv/top.html", channel=None, entries=entries, scope="network")
 
 
 # ── CLONE ─────────────────────────────────────────────────────────────────────
@@ -637,3 +759,145 @@ def cs_list():
         flash(e.message, "error")
     return render_template("chanserv/list.html",
                            channels=channels, pattern=pattern, extra=extra)
+
+
+# ── ACCESS (numeric) ──────────────────────────────────────────────────────────
+
+@bp.route("/<channel>/access_num")
+@login_required
+def access_num(channel):
+    from utils import parse_access_list
+    try:
+        result = rpc("anope.command", g.account, "ChanServ", f"ACCESS {chan(channel)} LIST * ALL")
+        entries = parse_access_list(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+        entries = []
+    return render_template("chanserv/access_num.html", channel=chan(channel), entries=entries)
+
+
+@bp.route("/<channel>/access_num/add", methods=["POST"])
+@login_required
+def access_num_add(channel):
+    mask  = request.form.get("mask", "").strip()
+    level = request.form.get("level", "").strip()
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"ACCESS {chan(channel)} ADD {mask} {level}")
+        flash(f"Added {mask} at level {level}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.access_num", channel=chanurl(chan(channel))))
+
+
+@bp.route("/<channel>/access_num/del", methods=["POST"])
+@login_required
+def access_num_del(channel):
+    mask = request.form.get("mask", "").strip()
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"ACCESS {chan(channel)} DEL {mask}")
+        flash(f"Removed {mask}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.access_num", channel=chanurl(chan(channel))))
+
+
+# ── xOP ───────────────────────────────────────────────────────────────────────
+
+XOP_TYPES = ["VOP", "HOP", "AOP", "SOP", "QOP"]
+
+
+@bp.route("/<channel>/xop")
+@login_required
+def xop(channel):
+    from utils import parse_xop_list
+    lists = {}
+    for xtype in XOP_TYPES:
+        try:
+            result = rpc("anope.command", g.account, "ChanServ", f"{xtype} {chan(channel)} LIST")
+            lists[xtype] = parse_xop_list(result)
+        except AnopeError:
+            lists[xtype] = []
+    return render_template("chanserv/xop.html", channel=chan(channel), lists=lists, xop_types=XOP_TYPES)
+
+
+@bp.route("/<channel>/xop/add", methods=["POST"])
+@login_required
+def xop_add(channel):
+    xtype = request.form.get("type", "").strip().upper()
+    mask  = request.form.get("mask", "").strip()
+    if xtype not in XOP_TYPES:
+        flash("Invalid xOP type.", "error")
+        return redirect(url_for("chanserv.xop", channel=chanurl(chan(channel))))
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"{xtype} {chan(channel)} ADD {mask}")
+        flash(f"Added {mask} to {xtype}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.xop", channel=chanurl(chan(channel))))
+
+
+@bp.route("/<channel>/xop/del", methods=["POST"])
+@login_required
+def xop_del(channel):
+    xtype = request.form.get("type", "").strip().upper()
+    mask  = request.form.get("mask", "").strip()
+    if xtype not in XOP_TYPES:
+        flash("Invalid xOP type.", "error")
+        return redirect(url_for("chanserv.xop", channel=chanurl(chan(channel))))
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"{xtype} {chan(channel)} DEL {mask}")
+        flash(f"Removed {mask} from {xtype}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.xop", channel=chanurl(chan(channel))))
+
+
+# ── LEVELS ────────────────────────────────────────────────────────────────────
+
+@bp.route("/<channel>/levels")
+@login_required
+def levels(channel):
+    from utils import parse_levels_list
+    try:
+        result = rpc("anope.command", g.account, "ChanServ", f"LEVELS {chan(channel)} LIST")
+        entries = parse_levels_list(result)
+    except AnopeError as e:
+        flash(e.message, "error")
+        entries = []
+    return render_template("chanserv/levels.html", channel=chan(channel), entries=entries)
+
+
+@bp.route("/<channel>/levels/set", methods=["POST"])
+@login_required
+def levels_set(channel):
+    privilege = request.form.get("privilege", "").strip().upper()
+    level     = request.form.get("level", "").strip()
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"LEVELS {chan(channel)} SET {privilege} {level}")
+        flash(f"{privilege} set to {level}.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.levels", channel=chanurl(chan(channel))))
+
+
+@bp.route("/<channel>/levels/reset", methods=["POST"])
+@login_required
+def levels_reset(channel):
+    privilege = request.form.get("privilege", "").strip().upper()
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"LEVELS {chan(channel)} RESET {privilege}")
+        flash(f"{privilege} reset to default.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.levels", channel=chanurl(chan(channel))))
+
+
+@bp.route("/<channel>/levels/reset_all", methods=["POST"])
+@login_required
+def levels_reset_all(channel):
+    try:
+        rpc("anope.command", g.account, "ChanServ", f"LEVELS {chan(channel)} RESET")
+        flash("All levels reset to defaults.", "success")
+    except AnopeError as e:
+        flash(e.message, "error")
+    return redirect(url_for("chanserv.levels", channel=chanurl(chan(channel))))

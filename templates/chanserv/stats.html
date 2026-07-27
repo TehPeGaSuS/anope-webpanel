@@ -2,9 +2,22 @@
 {% block title %}ChanServ — {{ channel }} Stats{% endblock %}
 {% block content %}
 <div style="max-width:600px;">
-  <div class="mb-5">
-    <div class="page-title">Channel Stats</div>
-    <div class="page-subtitle">Your activity stats for {{ channel }}.</div>
+  <div class="mb-5 flex items-center justify-between">
+    <div>
+      <div class="page-title">Channel Stats</div>
+      <div class="page-subtitle">Your activity stats for {{ channel }}.</div>
+    </div>
+    <a href="{{ url_for('chanserv.top', channel=channel|chanurl) }}" class="btn btn-secondary">Top 10</a>
+  </div>
+
+  <div class="card mb-5 p-4 flex items-center justify-between">
+    <div style="font-size:0.82rem; color:var(--text-muted);">
+      Chanstats tracking is currently <strong style="color:var(--text);">{{ 'ON' if chanstats_on else 'OFF' }}</strong> for this channel.
+    </div>
+    <form method="POST" action="{{ url_for('chanserv.set_chanstats', channel=channel|chanurl) }}">
+      <input type="hidden" name="state" value="{{ 'OFF' if chanstats_on else 'ON' }}">
+      <button type="submit" class="btn {{ 'btn-danger' if chanstats_on else 'btn-secondary' }}">{{ 'Disable' if chanstats_on else 'Enable' }}</button>
+    </form>
   </div>
 
   {% if stats %}

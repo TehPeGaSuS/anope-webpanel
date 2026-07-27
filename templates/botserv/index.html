@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}BotServ — {{ channel }}{% endblock %}
+{% block content %}
+<div style="max-width:1000px;">
+  <div class="mb-5">
+    <div class="page-title">Bot — {{ channel }}</div>
+    <div class="page-subtitle">Kickers, greet/fantasy options, and quick actions for the assigned bot.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Assignment</div>
+    {% if info.get('bot_nick') %}
+    <div class="flex items-center justify-between">
+      <div style="color:var(--text);">Bot: <span class="font-mono">{{ info.bot_nick }}</span></div>
+      <form method="POST" action="{{ url_for('botserv.unassign', channel=channel|chanurl) }}" onsubmit="return confirm('Unassign the bot from this channel?');">
+        <button type="submit" class="btn btn-danger">Unassign</button>
+      </form>
+    </div>
+    {% else %}
+    <form method="POST" action="{{ url_for('botserv.assign', channel=channel|chanurl) }}" class="flex gap-2">
+      <input type="text" name="botnick" placeholder="Bot nick" class="form-input" style="max-width:220px;">
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Assign</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if info.get('bot_nick') %}
+  <div class="card mb-5 p-4">
+    <div class="section-title">Options</div>
+    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));">
+      {% for key, token, label in [
+        ('DONTKICKOPS', 'ops protection', "Don't kick ops"),
+        ('DONTKICKVOICES', 'voices protection', "Don't kick voices"),
+        ('FANTASY', 'fantasy', 'Fantasy commands'),
+        ('GREET', 'greet', 'Greet messages'),
+      ] %}
+      {% set is_on = token in info.option_set %}
+      <form method="POST" action="{{ url_for('botserv.set_option', channel=channel|chanurl, option=key) }}" class="flex items-center justify-between" style="padding:0.4rem 0.6rem; background:var(--pill-bg); border-radius:4px;">
+        <span style="font-size:0.82rem; color:var(--text);">{{ label }}</span>
+        <input type="hidden" name="state" value="{{ 'OFF' if is_on else 'ON' }}">
+        <button type="submit" class="btn {{ 'btn-primary' if is_on else 'btn-secondary' }}">
+          {{ 'On' if is_on else 'Off' }}
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+    <form method="POST" action="{{ url_for('botserv.set_option', channel=channel|chanurl, option='BANEXPIRE') }}" class="flex gap-2 mt-3">
+      <input type="text" name="value" placeholder="Ban expire (e.g. 15m, 0=disable)" class="form-input" style="max-width:260px;">
+      <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Set ban expire</button>
+    </form>
+  </div>
+
+  <div class="card mb-5">
+    <div class="p-4" style="border-bottom:1px solid var(--card-border);">
+      <div class="section-title" style="margin-bottom:0;">Kickers</div>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr><th>Kicker</th><th>Status</th><th>TTB</th><th>Extra</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for opt, label in kickers %}
+        {% set infokey = (opt|lower ~ '_kicker') if opt != 'BADWORDS' else 'bad_words_kicker' %}
+        {% set status = info.get(infokey, 'Disabled') %}
+        <tr>
+          <td style="color:var(--text);">{{ label }}</td>
+          <td style="font-size:0.8rem; {% if 'Enabled' in status %}color:#3fb950;{% else %}color:var(--text-muted);{% endif %}">{{ status }}</td>
+          <td colspan="2">
+            <form method="POST" action="{{ url_for('botserv.kick_set', channel=channel|chanurl, option=opt) }}" class="flex gap-1">
+              <input type="hidden" name="state" value="{{ 'OFF' if 'Enabled' in status else 'ON' }}">
+              {% if 'Enabled' not in status %}
+              <input type="text" name="ttb" placeholder="ttb" class="form-input" style="max-width:70px;">
+              {% if opt == 'CAPS' %}
+              <input type="text" name="extra" placeholder="min percent" class="form-input" style="max-width:120px;">
+              {% elif opt == 'FLOOD' %}
+              <input type="text" name="extra" placeholder="lines secs" class="form-input" style="max-width:120px;">
+              {% elif opt == 'REPEAT' %}
+              <input type="text" name="extra" placeholder="num" class="form-input" style="max-width:70px;">
+              {% endif %}
+              {% endif %}
+              <button type="submit" class="btn {{ 'btn-danger' if 'Enabled' in status else 'btn-primary' }}" style="white-space:nowrap;">
+                {{ 'Disable' if 'Enabled' in status else 'Enable' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card p-4">
+    <div class="section-title">Quick Actions</div>
+    <form method="POST" action="{{ url_for('botserv.say', channel=channel|chanurl) }}" class="flex gap-2 mb-2">
+      <input type="text" name="text" placeholder="Say something as the bot" class="form-input">
+      <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Say</button>
+    </form>
+    <form method="POST" action="{{ url_for('botserv.act', channel=channel|chanurl) }}" class="flex gap-2">
+      <input type="text" name="text" placeholder="Action text (/me ...)" class="form-input">
+      <button type="submit" class="btn btn-secondary" style="white-space:nowrap;">Act</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

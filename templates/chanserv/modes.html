@@ -104,21 +104,71 @@
   {# ── Users + status management ── #}
   {% if ci and ci.users %}
   <div class="card mb-4">
-    <div style="padding:0.75rem 1rem; border-bottom:1px solid var(--pill-bg);">
-      <div class="section-title" style="margin-bottom:0;">Users ({{ ci.users|length }})</div>
+    {# Header: count + search + pagination #}
+    <div style="padding:0.75rem 1rem; border-bottom:1px solid var(--pill-bg);
+                display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+      <div class="section-title" style="margin-bottom:0; flex-shrink:0;">
+        Users ({{ total_users }})
+      </div>
+      {# Nick search — filters client-side via JS, resets to page 1 on submit #}
+      <input type="text" id="nickSearch" placeholder="Filter nicks…"
+             style="flex:1; min-width:140px; max-width:260px;
+                    padding:0.25rem 0.5rem; font-size:0.8rem; font-family:monospace;
+                    background:var(--bg); border:1px solid var(--card-border);
+                    border-radius:4px; color:var(--text);">
+      <div style="margin-left:auto; display:flex; align-items:center; gap:0.4rem; flex-shrink:0;">
+        {# Prev #}
+        {% if page > 1 %}
+        <a href="{{ url_for('chanserv.modes', channel=channel|chanurl, page=page-1) }}"
+           class="btn btn-secondary" style="padding:0.2rem 0.55rem; font-size:0.78rem;">‹</a>
+        {% else %}
+        <span class="btn btn-secondary" style="padding:0.2rem 0.55rem; font-size:0.78rem;
+              opacity:0.35; cursor:default;">‹</span>
+        {% endif %}
+
+        {# Page selector #}
+        <form method="GET" action="{{ url_for('chanserv.modes', channel=channel|chanurl) }}"
+              style="display:flex; align-items:center; gap:0.3rem;">
+          <span style="font-size:0.8rem; color:var(--text-muted);">Page</span>
+          <input type="number" name="page" value="{{ page }}" min="1" max="{{ total_pages }}"
+                 style="width:52px; padding:0.15rem 0.3rem; font-size:0.8rem; text-align:center;
+                        background:var(--bg); border:1px solid var(--card-border);
+                        border-radius:4px; color:var(--text);">
+          <span style="font-size:0.8rem; color:var(--text-muted);">/ {{ total_pages }}</span>
+          <button type="submit" class="btn btn-secondary"
+                  style="padding:0.2rem 0.5rem; font-size:0.78rem;">Go</button>
+        </form>
+
+        {# Next #}
+        {% if page < total_pages %}
+        <a href="{{ url_for('chanserv.modes', channel=channel|chanurl, page=page+1) }}"
+           class="btn btn-secondary" style="padding:0.2rem 0.55rem; font-size:0.78rem;">›</a>
+        {% else %}
+        <span class="btn btn-secondary" style="padding:0.2rem 0.55rem; font-size:0.78rem;
+              opacity:0.35; cursor:default;">›</span>
+        {% endif %}
+      </div>
     </div>
-    <table class="data-table">
+
+    <style>
+      .manage-panel { display:none; }
+      .manage-btn { cursor:pointer; }
+      .manage-btn.open + tr .manage-panel { display:table-row; }
+      details.manage summary { list-style:none; }
+      details.manage summary::-webkit-details-marker { display:none; }
+    </style>
+    <table class="data-table" id="usersTable">
       <thead>
         <tr>
-          <th>Nick</th>
-          <th>Give status</th>
-          <th>Remove status</th>
+          <th style="width:40%;">Nick</th>
+          <th style="width:60%; text-align:right; padding-right:1rem;">Actions</th>
         </tr>
       </thead>
       <tbody>
-        {% for user in ci.users %}
+        {% for user in users_page %}
         {% set nick = user.lstrip('@&+%~') %}
-        <tr>
+        {% set uid = loop.index %}
+        <tr data-nick="{{ nick|lower }}">
           <td class="font-mono" style="color:
             {% if '@' in user or '&' in user %}#58a6ff
             {% elif '%' in user %}#bc8cff
@@ -126,60 +176,180 @@
             {% else %}#7d8590{% endif %};">
             {{ user }}
           </td>
-          <td>
-            <div style="display:flex; gap:0.3rem; flex-wrap:wrap;">
-              {% for cmd in ['OP','HALFOP','VOICE','PROTECT','OWNER'] %}
-              <form method="POST" action="{{ url_for('chanserv.chstatus', channel=channel|chanurl) }}">
-                <input type="hidden" name="cmd" value="{{ cmd }}">
-                <input type="hidden" name="nick" value="{{ nick }}">
-                <button type="submit" class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.7rem;">{{ cmd }}</button>
-              </form>
-              {% endfor %}
-            </div>
+          <td style="text-align:right;">
+            <button type="button"
+                    onclick="toggleManage(this, 'mp{{ uid }}')"
+                    style="padding:0.15rem 0.55rem; font-size:0.75rem; cursor:pointer;
+                           background:var(--btn-sec-bg); border:1px solid var(--btn-sec-border);
+                           color:var(--btn-sec-text); border-radius:4px;">
+              Manage
+            </button>
           </td>
-          <td>
-            <div style="display:flex; gap:0.3rem; flex-wrap:wrap;">
-              {% for cmd in ['DEOP','DEHALFOP','DEVOICE','DEPROTECT','DEOWNER'] %}
-              <form method="POST" action="{{ url_for('chanserv.chstatus', channel=channel|chanurl) }}">
-                <input type="hidden" name="cmd" value="{{ cmd }}">
-                <input type="hidden" name="nick" value="{{ nick }}">
-                <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.4rem; font-size:0.7rem;">{{ cmd }}</button>
-              </form>
-              {% endfor %}
+        </tr>
+        {# Inline manage panel — hidden by default, toggled by button #}
+        <tr id="mp{{ uid }}" style="display:none;">
+          <td colspan="2" style="padding:0.6rem 0.75rem; background:var(--sidebar-bg);
+                                  border-bottom:1px solid var(--card-border);">
+            <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
+
+              {# Give status #}
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.3rem; text-transform:uppercase; letter-spacing:0.05em;">Give</div>
+                <div style="display:flex; gap:0.25rem; flex-wrap:wrap;">
+                  {% for cmd in ['OP','HALFOP','VOICE','PROTECT','OWNER'] %}
+                  <form method="POST" action="{{ url_for('chanserv.chstatus', channel=channel|chanurl) }}">
+                    <input type="hidden" name="cmd" value="{{ cmd }}">
+                    <input type="hidden" name="nick" value="{{ nick }}">
+                    <button type="submit" class="btn btn-secondary" style="padding:0.15rem 0.4rem; font-size:0.7rem;">{{ cmd }}</button>
+                  </form>
+                  {% endfor %}
+                </div>
+              </div>
+
+              {# Remove status #}
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.3rem; text-transform:uppercase; letter-spacing:0.05em;">Remove</div>
+                <div style="display:flex; gap:0.25rem; flex-wrap:wrap;">
+                  {% for cmd in ['DEOP','DEHALFOP','DEVOICE','DEPROTECT','DEOWNER'] %}
+                  <form method="POST" action="{{ url_for('chanserv.chstatus', channel=channel|chanurl) }}">
+                    <input type="hidden" name="cmd" value="{{ cmd }}">
+                    <input type="hidden" name="nick" value="{{ nick }}">
+                    <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.4rem; font-size:0.7rem;">{{ cmd }}</button>
+                  </form>
+                  {% endfor %}
+                </div>
+              </div>
+
+              {# Kick #}
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.3rem; text-transform:uppercase; letter-spacing:0.05em;">Kick</div>
+                <form method="POST" action="{{ url_for('chanserv.kick', channel=channel|chanurl) }}"
+                      class="flex gap-1">
+                  <input type="hidden" name="nick" value="{{ nick }}">
+                  <input type="text" name="reason" placeholder="Reason"
+                         class="form-input" style="width:130px; font-size:0.78rem; padding:0.15rem 0.4rem;">
+                  <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.4rem; font-size:0.7rem;">Kick</button>
+                </form>
+              </div>
+
+              {# Ban #}
+              <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.3rem; text-transform:uppercase; letter-spacing:0.05em;">Ban</div>
+                <form method="POST" action="{{ url_for('chanserv.ban', channel=channel|chanurl) }}"
+                      class="flex gap-1">
+                  <input type="text" name="mask" value="{{ nick }}"
+                         class="form-input font-mono" style="width:130px; font-size:0.78rem; padding:0.15rem 0.4rem;">
+                  <input type="text" name="reason" placeholder="Reason"
+                         class="form-input" style="width:110px; font-size:0.78rem; padding:0.15rem 0.4rem;">
+                  <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.4rem; font-size:0.7rem;">Ban</button>
+                </form>
+              </div>
+
             </div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+
+    {# Bottom pagination strip #}
+    {% if total_pages > 1 %}
+    <div style="padding:0.6rem 1rem; border-top:1px solid var(--pill-bg);
+                display:flex; justify-content:center; gap:0.35rem; flex-wrap:wrap;">
+      {# First + prev #}
+      {% if page > 1 %}
+      <a href="{{ url_for('chanserv.modes', channel=channel|chanurl, page=1) }}"
+         class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.78rem;">«</a>
+      <a href="{{ url_for('chanserv.modes', channel=channel|chanurl, page=page-1) }}"
+         class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.78rem;">‹</a>
+      {% endif %}
+
+      {# Page window: show up to 7 pages around current #}
+      {% set win_start = [1, page - 3] | max %}
+      {% set win_end   = [total_pages, page + 3] | min %}
+      {% if win_start > 1 %}<span style="color:var(--text-muted); padding:0 0.2rem;">…</span>{% endif %}
+      {% for p in range(win_start, win_end + 1) %}
+      <a href="{{ url_for('chanserv.modes', channel=channel|chanurl, page=p) }}"
+         class="btn {% if p == page %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="padding:0.2rem 0.5rem; font-size:0.78rem; min-width:2rem; text-align:center;">
+        {{ p }}
+      </a>
+      {% endfor %}
+      {% if win_end < total_pages %}<span style="color:var(--text-muted); padding:0 0.2rem;">…</span>{% endif %}
+
+      {# Next + last #}
+      {% if page < total_pages %}
+      <a href="{{ url_for('chanserv.modes', channel=channel|chanurl, page=page+1) }}"
+         class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.78rem;">›</a>
+      <a href="{{ url_for('chanserv.modes', channel=channel|chanurl, page=total_pages) }}"
+         class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.78rem;">»</a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
+
+  <script>
+  (function () {
+    var input = document.getElementById('nickSearch');
+    // Only data rows have data-nick; manage-panel rows don't — exclude them from filter
+    function dataRows() {
+      return document.querySelectorAll('#usersTable tbody tr[data-nick]');
+    }
+    input.addEventListener('input', function () {
+      var q = this.value.toLowerCase();
+      dataRows().forEach(function (row) {
+        var show = !q || row.dataset.nick.includes(q);
+        row.style.display = show ? '' : 'none';
+        // also hide the sibling manage panel row when its nick row is hidden
+        var next = row.nextElementSibling;
+        if (next && !next.dataset.nick) next.style.display = 'none';
+      });
+    });
+  })();
+
+  function toggleManage(btn, id) {
+    var panel = document.getElementById(id);
+    var isOpen = panel.style.display !== 'none';
+    // close any other open panels first
+    document.querySelectorAll('#usersTable tbody tr[id^="mp"]').forEach(function(p) {
+      p.style.display = 'none';
+    });
+    panel.style.display = isOpen ? 'none' : 'table-row';
+    btn.textContent = (!isOpen) ? 'Close' : 'Manage';
+  }
+  </script>
   {% endif %}
 
-  {# ── Kick / Ban / Invite / Unban ── #}
+  {# ── Invite / Unban (kick+ban moved to per-user Manage panel) ── #}
   <div class="card p-4">
     <div class="section-title">User actions</div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-
-      <form method="POST" action="{{ url_for('chanserv.kick', channel=channel|chanurl) }}" class="flex gap-2">
-        <input type="text" name="nick" placeholder="Nick" class="form-input font-mono" style="max-width:140px;">
-        <input type="text" name="reason" placeholder="Reason" class="form-input">
-        <button type="submit" class="btn btn-danger">Kick</button>
-      </form>
-
-      <form method="POST" action="{{ url_for('chanserv.ban', channel=channel|chanurl) }}" class="flex gap-2">
-        <input type="text" name="mask" placeholder="Mask" class="form-input font-mono" style="max-width:140px;">
-        <input type="text" name="reason" placeholder="Reason" class="form-input">
-        <button type="submit" class="btn btn-danger">Ban</button>
-      </form>
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
 
       <form method="POST" action="{{ url_for('chanserv.invite', channel=channel|chanurl) }}" class="flex gap-2">
-        <input type="text" name="nick" placeholder="Nick to invite" class="form-input font-mono">
+        <input type="text" name="nick" placeholder="Nick to invite" class="form-input font-mono" style="max-width:200px;">
         <button type="submit" class="btn btn-primary">Invite</button>
       </form>
 
       <form method="POST" action="{{ url_for('chanserv.unban', channel=channel|chanurl) }}" class="flex gap-2">
-        <input type="text" name="mask" placeholder="Mask (blank = you)" class="form-input font-mono">
+        <input type="text" name="mask" placeholder="Mask (blank = you)" class="form-input font-mono" style="max-width:200px;">
         <button type="submit" class="btn btn-secondary">Unban</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.ban', channel=channel|chanurl) }}" class="flex gap-2">
+        <input type="text" name="mask" placeholder="Nick or mask" class="form-input font-mono" style="max-width:160px;">
+        <input type="text" name="expiry" placeholder="Expiry (optional)" class="form-input font-mono" style="max-width:120px;">
+        <input type="text" name="reason" placeholder="Reason (optional)" class="form-input" style="max-width:160px;">
+        <button type="submit" class="btn btn-danger">Ban</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.down', channel=channel|chanurl) }}" class="flex gap-2">
+        <input type="text" name="nick" placeholder="Nick (blank = you)" class="form-input font-mono" style="max-width:160px;">
+        <button type="submit" class="btn btn-secondary">Down</button>
+      </form>
+
+      <form method="POST" action="{{ url_for('chanserv.up', channel=channel|chanurl) }}" class="flex gap-2">
+        <input type="text" name="nick" placeholder="Nick (blank = you)" class="form-input font-mono" style="max-width:160px;">
+        <button type="submit" class="btn btn-secondary">Up</button>
       </form>
 
     </div>

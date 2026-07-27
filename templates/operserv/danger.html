@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}OperServ — Danger Zone{% endblock %}
+{% block content %}
+<div style="max-width:600px;">
+  <div class="mb-5">
+    <div class="page-title">Danger Zone</div>
+    <div class="page-subtitle">Services-wide actions. Use with care.</div>
+  </div>
+
+  <div class="card mb-5 p-4 flex items-center justify-between">
+    <div>
+      <div style="color:var(--text); font-weight:600; font-size:0.9rem;">Reload configuration</div>
+      <div style="color:var(--text-muted); font-size:0.8rem;">Re-reads the services config file. Does not restart the process.</div>
+    </div>
+    <form method="POST" action="{{ url_for('operserv.danger_reload') }}">
+      <button type="submit" class="btn btn-secondary">Reload</button>
+    </form>
+  </div>
+
+  <div class="card mb-5 p-4 flex items-center justify-between">
+    <div>
+      <div style="color:var(--text); font-weight:600; font-size:0.9rem;">Update databases</div>
+      <div style="color:var(--text-muted); font-size:0.8rem;">Forces an immediate database save.</div>
+    </div>
+    <form method="POST" action="{{ url_for('operserv.danger_update') }}">
+      <button type="submit" class="btn btn-secondary">Update</button>
+    </form>
+  </div>
+
+  {% for action, label, desc in [
+    ('restart', 'Restart services', 'Saves databases, then exits and immediately re-runs the executable.'),
+    ('shutdown', 'Shut down services', 'Saves databases, then terminates services. Something else must restart the process.'),
+    ('quit', 'Quit services (no save)', 'Terminates services immediately WITHOUT saving databases. Only use if the in-memory databases are suspected corrupt.'),
+  ] %}
+  <div class="card mb-5 p-5" style="border-color:var(--danger);">
+    <div style="color:var(--text); font-weight:600; font-size:0.9rem; margin-bottom:0.25rem;">{{ label }}</div>
+    <div style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1rem;">{{ desc }}</div>
+    <form method="POST" action="{{ url_for('operserv.danger_action', action=action) }}"
+          style="display:flex; gap:0.5rem;"
+          onsubmit="return confirm('{{ label }} — are you sure?');">
+      <input type="text" name="confirm" required autocomplete="off"
+             placeholder="Type {{ network_name }} to confirm" class="form-input font-mono">
+      <button type="submit" class="btn btn-danger" style="white-space:nowrap;">{{ label }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}MemoServ — Ignore List{% endblock %}
+{% block content %}
+<div style="max-width:600px;">
+  <div class="mb-5">
+    <div class="page-title">Memo Ignore List</div>
+    <div class="page-subtitle">Nicks/hosts that can't send you (or your channels) memos.</div>
+  </div>
+
+  <div class="card mb-5 p-4">
+    <div class="section-title">Add</div>
+    <form method="POST" action="{{ url_for('memoserv.ignore_add') }}" class="flex gap-2">
+      <input type="text" name="entry" placeholder="nick or host" class="form-input font-mono">
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+    </form>
+  </div>
+
+  {% if entries %}
+  <div class="card">
+    <table class="data-table">
+      <thead><tr><th>Entry</th><th></th></tr></thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--text);">{{ e }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('memoserv.ignore_del') }}">
+              <input type="hidden" name="entry" value="{{ e }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="color:var(--text-muted); font-size:0.85rem;">Ignore list is empty.</div>
+  {% endif %}
+</div>
+{% endblock %}

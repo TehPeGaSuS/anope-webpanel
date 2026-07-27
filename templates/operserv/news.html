@@ -4,16 +4,52 @@
 <div style="max-width:900px;">
   <div class="mb-5">
     <div class="page-title">News</div>
-    <div class="page-subtitle">Network news entries.</div>
+    <div class="page-subtitle">Messages shown to users at logon, on oper-up, and at random.</div>
   </div>
-  <div class="card p-4">
-    {% if result %}
-    {% for line in result %}
-    <div class="font-mono" style="font-size:0.82rem; color:var(--text); padding:0.2rem 0;">{{ line }}</div>
-    {% endfor %}
+
+  {% for section in sections %}
+  <div class="card mb-5">
+    <div class="p-4" style="border-bottom:1px solid var(--card-border);">
+      <div class="section-title" style="margin-bottom:0.75rem;">{{ section.label }}</div>
+      <form method="POST" action="{{ url_for('operserv.news_add') }}" class="flex gap-2">
+        <input type="hidden" name="cmd" value="{{ section.cmd }}">
+        <input type="text" name="text" placeholder="News text" class="form-input">
+        <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Add</button>
+      </form>
+    </div>
+    {% if section.entries %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Text</th>
+          <th>Created by</th>
+          <th>Created at</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in section.entries %}
+        <tr>
+          <td class="font-mono" style="color:var(--text-muted);">{{ e.num }}</td>
+          <td style="color:var(--text);">{{ e.text }}</td>
+          <td class="font-mono" style="color:var(--text-muted); font-size:0.8rem;">{{ e.creator }}</td>
+          <td style="color:var(--text-muted); font-size:0.8rem;">{{ e.created }}</td>
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('operserv.news_del') }}">
+              <input type="hidden" name="cmd" value="{{ section.cmd }}">
+              <input type="hidden" name="num" value="{{ e.num }}">
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     {% else %}
-    <div style="color:var(--text-muted); font-size:0.85rem;">No news entries.</div>
+    <div class="p-4" style="color:var(--text-muted); font-size:0.85rem;">No entries.</div>
     {% endif %}
   </div>
+  {% endfor %}
 </div>
 {% endblock %}

@@ -6,6 +6,12 @@
   <title>Login — {{ network_name }} Control Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme') || 'light';
+      if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
   <style>
     :root {
       --accent:      {{ network_color }};
@@ -137,10 +143,14 @@
       </form>
     </div>
 
-    <div style="text-align:center; margin-top:1rem;">
+    <div style="text-align:center; margin-top:1rem; display:flex; justify-content:center; gap:1rem;">
       <a href="{{ url_for('nickserv.reset') }}"
          style="font-size:0.8rem; color:var(--text-muted); text-decoration:none;">
         Forgot password?
+      </a>
+      <a href="{{ url_for('nickserv.resend') }}"
+         style="font-size:0.8rem; color:var(--text-muted); text-decoration:none;">
+        Resend confirmation email
       </a>
     </div>
 

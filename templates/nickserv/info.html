@@ -34,6 +34,7 @@
             <th>Nick</th>
             <th>Last seen</th>
             <th>VHost</th>
+            <th style="text-align:right; padding-right:1rem;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -48,6 +49,18 @@
             <td style="color:var(--text-muted); font-size:0.82rem;">{{ data.lastseen | datetimeformat }}</td>
             <td class="font-mono" style="color:var(--text-muted); font-size:0.82rem;">
               {% if data.vhost %}{{ data.vhost.mask }}{% else %}—{% endif %}
+            </td>
+            <td style="text-align:right;">
+              {% if nick != account.display %}
+              <form method="POST" action="{{ url_for('nickserv.ungroup') }}"
+                    onsubmit="return confirm('Ungroup {{ nick }} from your account? This unregisters it as a standalone nick.');"
+                    style="display:inline;">
+                <input type="hidden" name="nick" value="{{ nick }}">
+                <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.5rem; font-size:0.75rem;">Ungroup</button>
+              </form>
+              {% else %}
+              <span style="color:var(--text-muted); font-size:0.75rem;" title="Can't ungroup your display nick">—</span>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
