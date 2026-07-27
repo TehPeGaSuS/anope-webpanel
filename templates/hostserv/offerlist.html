@@ -1,23 +1,46 @@
 {% extends "base.html" %}
 {% block title %}HostServ — Offer List{% endblock %}
 {% block content %}
-<div style="max-width:760px;">
+<div style="max-width:800px;">
   <div class="mb-5">
     <div class="page-title">VHost Offer List</div>
-    <div class="page-subtitle">Pre-approved vhosts you can take instantly — no oper review needed.</div>
+    <div class="page-subtitle">
+      {% if is_hs_oper %}
+      Stock vhosts unprivileged users can take instantly — includes offers you personally can't take, labelled [Invalid].
+      {% else %}
+      Pre-approved vhosts you can take instantly — no oper review needed.
+      {% endif %}
+    </div>
   </div>
+
+  {% if is_hs_oper %}
+  <div class="card mb-4 p-4">
+    <div class="section-title">Add an offer</div>
+    <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">
+      VHost may contain template variables. Expiry is optional (e.g. <span class="font-mono">30d</span>).
+    </p>
+    <form method="POST" action="{{ url_for('hostserv.offerlist') }}" class="flex gap-2 flex-wrap">
+      <input type="hidden" name="action" value="add">
+      <input type="text" name="vhost" placeholder="vhost.template.org" required
+             class="form-input font-mono" style="flex:1; min-width:180px;">
+      <input type="text" name="expiry" placeholder="Expiry (opt.)" class="form-input" style="max-width:120px;">
+      <input type="text" name="reason" placeholder="Reason (opt.)" class="form-input" style="max-width:200px;">
+      <button type="submit" class="btn btn-primary">Add offer</button>
+    </form>
+  </div>
+  {% endif %}
 
   {% if offers %}
   <div class="card mb-4">
     <div style="overflow-x:auto;">
-<table class="data-table">
+    <table class="data-table">
       <thead>
         <tr>
           <th>#</th>
           <th>Offered VHost (template)</th>
           <th>Your VHost preview</th>
           <th>Expiry</th>
-          <th></th>
+          <th style="text-align:right;"></th>
         </tr>
       </thead>
       <tbody>
@@ -27,24 +50,48 @@
           <td class="font-mono" style="color:var(--accent);">{{ o.offered }}</td>
           <td class="font-mono" style="font-size:0.82rem;">{{ o.yours }}</td>
           <td style="color:var(--text-muted); font-size:0.82rem;">{{ o.trailer }}</td>
-          <td>
-            <form method="POST" action="{{ url_for('hostserv.offerlist') }}">
+          <td style="text-align:right; white-space:nowrap;">
+            <form method="POST" action="{{ url_for('hostserv.offerlist') }}" style="display:inline;">
+              <input type="hidden" name="action" value="take">
               <input type="hidden" name="choice" value="{{ o.num }}">
               <button type="submit" class="btn btn-primary" style="padding:0.15rem 0.5rem; font-size:0.75rem;">Take</button>
             </form>
+            {% if is_hs_oper %}
+            <form method="POST" action="{{ url_for('hostserv.offerlist') }}"
+                  onsubmit="return confirm('Remove offer #{{ o.num }}?');" style="display:inline;">
+              <input type="hidden" name="action" value="del">
+              <input type="hidden" name="target" value="{{ o.num }}">
+              <button type="submit" class="btn btn-danger" style="padding:0.15rem 0.5rem; font-size:0.75rem;">Remove</button>
+            </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-</div>
+    </div>
     <div style="padding:0.6rem 1rem; font-size:0.75rem; color:var(--text-muted); border-top:1px solid var(--card-border);">
-      Once a vhost is taken, you can't take another for 10 years.
+      Once a vhost is taken, you can't take another for 7 days.
     </div>
   </div>
   {% else %}
-  <div class="card p-4" style="color:var(--text-muted);">
+  <div class="card p-4 mb-4" style="color:var(--text-muted);">
+    {% if is_hs_oper %}
+    The host offer list is currently empty.
+    {% else %}
     The host offer list is empty right now.
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if is_hs_oper %}
+  <div class="card p-4" style="border-color:var(--danger);">
+    <div class="section-title" style="color:var(--danger);">Clear entire offer list</div>
+    <form method="POST" action="{{ url_for('hostserv.offerlist') }}"
+          onsubmit="return confirm('Clear the ENTIRE host offer list? This cannot be undone.');">
+      <input type="hidden" name="action" value="clear">
+      <button type="submit" class="btn btn-danger">Clear all offers</button>
+    </form>
   </div>
   {% endif %}
 </div>

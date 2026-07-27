@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, g
+from flask import Blueprint, render_template, request, flash, redirect, url_for, g, session
 from rpc import rpc, AnopeError
 from auth import login_required
 from utils import parse_memo_list, as_search_mask
@@ -276,25 +276,82 @@ def group():
 @host_bp.route("/offerlist", methods=["GET", "POST"])
 @login_required
 def offerlist():
+    # Shared page for everyone: browsing + taking an offer needs no
+    # special permission (bare OFFERLIST). Opers additionally get
+    # add/remove/clear controls, gated the same way every other
+    # oper-only section in this app is (session-level is_oper flag -
+    # Anope's own hostserv/offer permission check on the underlying
+    # OFFER ADD/DEL/CLEAR RPC calls is the real gate, this is just UX).
     from utils import parse_hs_offerlist
+    is_hs_oper = session.get("is_oper", False)
+
+    # Anope's OFFERLIST/OFFERLIST TAKE command (modules/hostserv/hs_offer.cpp,
+    # CommandHSOfferList) sets RequireUser(true) unconditionally - even for
+    # just browsing, not only TAKE - so it always fails with a generic
+    # "No such command" if the account isn't simultaneously connected to IRC.
+    # The oper-only OFFER LIST/ADD/DEL/CLEAR command has no such requirement.
+    # Confirmed live: identical RPC call succeeds for a live-connected
+    # account and fails this way for one that isn't.
+    NO_LIVE_CONN_MSG = ("You need to be connected to IRC at the same time to browse or take "
+                         "offered vhosts (Anope requires a live connection for this command).")
+
+    def _friendly(e):
+        return NO_LIVE_CONN_MSG if e.message == "No such command" else e.message
+
     if request.method == "POST":
-        choice = request.form.get("choice", "").strip()
-        if not choice:
-            flash("Select an offer to take.", "error")
-        else:
+        action = request.form.get("action", "take").strip().lower()
+        if action == "take":
+            choice = request.form.get("choice", "").strip()
+            if not choice:
+                flash("Select an offer to take.", "error")
+            else:
+                try:
+                    rpc("anope.command", g.account, "HostServ", f"OFFERLIST TAKE {choice}")
+                    flash("VHost taken from offer list.", "success")
+                    return redirect(url_for("hostserv.index"))
+                except AnopeError as e:
+                    flash(_friendly(e), "error")
+        elif action == "add" and is_hs_oper:
+            vhost = request.form.get("vhost", "").strip()
+            expiry = request.form.get("expiry", "").strip()
+            reason = request.form.get("reason", "").strip()
+            cmd = "OFFER ADD"
+            if expiry:
+                cmd += f" +{expiry}"
+            cmd += f" {vhost}"
+            if reason:
+                cmd += f" {reason}"
             try:
-                rpc("anope.command", g.account, "HostServ", f"OFFERLIST TAKE {choice}")
-                flash("VHost taken from offer list.", "success")
-                return redirect(url_for("hostserv.index"))
+                rpc("anope.command", g.account, "HostServ", cmd)
+                flash(f"VHost offer {vhost} added.", "success")
             except AnopeError as e:
                 flash(e.message, "error")
+        elif action == "del" and is_hs_oper:
+            target = request.form.get("target", "").strip()
+            try:
+                rpc("anope.command", g.account, "HostServ", f"OFFER DEL {target}")
+                flash(f"Offer {target} removed.", "success")
+            except AnopeError as e:
+                flash(e.message, "error")
+        elif action == "clear" and is_hs_oper:
+            try:
+                rpc("anope.command", g.account, "HostServ", "OFFER CLEAR")
+                flash("Host offer list cleared.", "success")
+            except AnopeError as e:
+                flash(e.message, "error")
+        return redirect(url_for("hostserv.offerlist"))
+
     offers = []
     try:
-        result = rpc("anope.command", g.account, "HostServ", "OFFERLIST")
+        # Opers get the full management view (includes offers this
+        # account itself couldn't take, labelled [Invalid] by Anope);
+        # everyone else gets the filtered "what can I actually take" view.
+        cmd = "OFFER LIST" if is_hs_oper else "OFFERLIST"
+        result = rpc("anope.command", g.account, "HostServ", cmd)
         offers = parse_hs_offerlist(result)
     except AnopeError as e:
-        flash(e.message, "error")
-    return render_template("hostserv/offerlist.html", offers=offers)
+        flash(_friendly(e), "error")
+    return render_template("hostserv/offerlist.html", offers=offers, is_hs_oper=is_hs_oper)
 
 
 # ── Oper-only management ──────────────────────────────────────────────────
@@ -420,47 +477,3 @@ def delall():
     return redirect(url_for("hostserv.admin"))
 
 
-@host_bp.route("/admin/offer", methods=["GET", "POST"])
-@login_required
-@_hs_oper_required
-def offer():
-    from utils import parse_hs_offerlist
-    if request.method == "POST":
-        action = request.form.get("action", "").strip().upper()
-        if action == "ADD":
-            vhost = request.form.get("vhost", "").strip()
-            expiry = request.form.get("expiry", "").strip()
-            reason = request.form.get("reason", "").strip()
-            cmd = "OFFER ADD"
-            if expiry:
-                cmd += f" +{expiry}"
-            cmd += f" {vhost}"
-            if reason:
-                cmd += f" {reason}"
-            try:
-                rpc("anope.command", g.account, "HostServ", cmd)
-                flash(f"VHost offer {vhost} added.", "success")
-            except AnopeError as e:
-                flash(e.message, "error")
-        elif action == "DEL":
-            target = request.form.get("target", "").strip()
-            try:
-                rpc("anope.command", g.account, "HostServ", f"OFFER DEL {target}")
-                flash(f"Offer {target} removed.", "success")
-            except AnopeError as e:
-                flash(e.message, "error")
-        elif action == "CLEAR":
-            try:
-                rpc("anope.command", g.account, "HostServ", "OFFER CLEAR")
-                flash("Host offer list cleared.", "success")
-            except AnopeError as e:
-                flash(e.message, "error")
-        return redirect(url_for("hostserv.offer"))
-
-    offers = []
-    try:
-        result = rpc("anope.command", g.account, "HostServ", "OFFER LIST")
-        offers = parse_hs_offerlist(result)
-    except AnopeError as e:
-        flash(e.message, "error")
-    return render_template("hostserv/offer.html", offers=offers)

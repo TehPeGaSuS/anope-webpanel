@@ -276,6 +276,16 @@ actively re-syncs bans it manages. There's no direct Anope command for
 **HostServ `OFFERLIST TAKE`** takes a single argument
 (`{vhost|entry-num}`) — no separate ident parameter.
 
+**`OFFERLIST` requires a live IRC connection, even to just browse.**
+Anope's `OFFERLIST`/`OFFERLIST TAKE` command (`CommandHSOfferList`) sets
+`RequireUser(true)` unconditionally, so it fails with a generic `"No such
+command"` for any account that isn't simultaneously connected to IRC —
+confirmed live, identical RPC call succeeds when connected and fails
+otherwise. The oper-only `OFFER LIST/ADD/DEL/CLEAR` command has no such
+requirement. The panel can't work around this (it's not something to
+patch around in Anope's source), so it catches the specific error and
+shows a clear explanation instead of the raw Anope message.
+
 ---
 
 ## Known limitations / roadmap

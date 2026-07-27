@@ -297,7 +297,6 @@
         <div style="padding: 0.5rem 1rem 0.25rem; font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);">Oper</div>
         <a href="{{ url_for('hostserv.admin') }}"   class="sidebar-link {{ 'active' if ep == 'hostserv.admin' }}">All VHosts</a>
         <a href="{{ url_for('hostserv.waiting') }}" class="sidebar-link {{ 'active' if ep == 'hostserv.waiting' }}">Waiting Requests</a>
-        <a href="{{ url_for('hostserv.offer') }}"   class="sidebar-link {{ 'active' if ep == 'hostserv.offer' }}">Offer List (manage)</a>
         {% endif %}
 
       {% elif service == 'botserv' %}
