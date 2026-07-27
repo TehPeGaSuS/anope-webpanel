@@ -314,25 +314,39 @@ def parse_cs_info(lines):
 
 def parse_entrymsg_list(lines):
     """
-    Parses ChanServ ENTRYMSG LIST output. Real format (confirmed live —
-    this docstring's original assumed "N: message" format doesn't match;
-    it's a tabular list like badwords/news, and returned zero entries
-    against real output):
-      "Entry message list for #clitest:"
-      "Number  Creator      Created                   Message"
-      "1       claudetest3  Mon Jul 27 17:35:30 2026  welcome test message"
-      "End of entry message list."
+    Parses ChanServ ENTRYMSG LIST output. Layout-sensitive like every
+    other Anope list command using ListFormatter — FLEXIBLE returned zero
+    entries until caught by an explicit flexible-layout audit.
+      FIXED (confirmed live):
+        "Entry message list for #clitest:"
+        "Number  Creator      Created                   Message"
+        "1       claudetest3  Mon Jul 27 17:35:30 2026  welcome test message"
+        "End of entry message list."
+      FLEXIBLE (confirmed live):
+        "Entry message list for #clitest:"
+        "1: welcome test message -- created by claudetest3 at Mon Jul 27 17:35:30 2026"
+        "End of entry message list."
     """
-    pattern = re.compile(rf'^(\d+)\s+(\S+)\s+({DATE_RE})\s+(.+)$')
+    pattern_flexible = re.compile(rf'^(\d+):\s+(.+?)\s+--\s+created by\s+(\S+)\s+at\s+({DATE_RE})$')
+    pattern_fixed = re.compile(rf'^(\d+)\s+(\S+)\s+({DATE_RE})\s+(.+)$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
         if not line:
             continue
-        first_word = line.split()[0].lower()
+        first_word = line.split()[0].lower().rstrip(':')
         if first_word in ('entry', 'number', 'end'):
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "num":     m.group(1),
+                "creator": m.group(3),
+                "created": m.group(4).strip(),
+                "text":    m.group(2).strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({
                 "num":     m.group(1),
@@ -345,13 +359,20 @@ def parse_entrymsg_list(lines):
 
 def parse_log_list(lines):
     """
-    Parses ChanServ LOG LIST output. Real format (confirmed live — the
-    originally assumed "N: command on service: method" never matched,
-    always returned zero entries):
-      "Log list for #clitest:"
-      "Number  Service   Command  Method"
-      "1       ChanServ  FLAGS    MESSAGE"
-      "2       ChanServ  ACCESS   NOTICE +"
+    Parses ChanServ LOG LIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — the FIXED format below was
+    the only one live-verified when this was first fixed; FLEXIBLE
+    returned zero entries until caught by an explicit flexible-layout
+    audit.
+      FIXED (confirmed live):
+        "Log list for #clitest:"
+        "Number  Service   Command  Method"
+        "1       ChanServ  FLAGS    MESSAGE"
+        "2       ChanServ  ACCESS   NOTICE +"
+      FLEXIBLE (confirmed live):
+        "Log list for #clitest:"
+        "1: FLAGS on ChanServ: MESSAGE"
+        "2: ACCESS on ChanServ: NOTICE +"
 
     Important: the displayed "Command" is a short uppercase name (FLAGS),
     but re-submitting LOG to ADD/DEL requires the full lowercase
@@ -361,16 +382,28 @@ def parse_log_list(lines):
     that working form so a delete button fed straight from this parser's
     output actually functions.
     """
-    pattern = re.compile(r'^(\d+)\s+(\S+)\s+(\S+)\s+(.+)$')
+    pattern_flexible = re.compile(r'^(\d+):\s+(\S+)\s+on\s+(\S+):\s+(.+)$')
+    pattern_fixed = re.compile(r'^(\d+)\s+(\S+)\s+(\S+)\s+(.+)$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
         if not line:
             continue
-        first_word = line.split()[0].lower()
+        first_word = line.split()[0].lower().rstrip(':')
         if first_word in ('log', 'number'):
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            short_command, service = m.group(2), m.group(3)
+            method_status = m.group(4).strip().split(None, 1)
+            entries.append({
+                "command": f"{service.lower()}/{short_command.lower()}",
+                "service": service,
+                "method":  method_status[0],
+                "status":  method_status[1] if len(method_status) > 1 else "",
+            })
+            continue
+        m = pattern_fixed.match(line)
         if m:
             service = m.group(2)
             short_command = m.group(3)
@@ -575,17 +608,23 @@ def parse_xop_list(lines):
 
 def parse_levels_list(lines):
     """
-    Parses ChanServ LEVELS LIST output. Real format (confirmed live —
-    no "=" at all, this docstring's original assumed format was wrong
-    for this Anope version and returned zero entries against real output):
-      "Access level settings for channel #clitest:"
-      "Name           Level"
-      "ACCESS_CHANGE  10"
-      "KICK           -1"              (LEVELS SET KICK -1 → nobody, incl. founder)
-      "TOPIC          (disabled)"       (LEVELS DIS/DISABLE)
-      "ASSIGN         (founder only)"
+    Parses ChanServ LEVELS LIST output. Layout-sensitive — FLEXIBLE uses
+    "=" (confirmed live), FIXED does not (also confirmed live, and this
+    docstring previously assumed FIXED's no-"=" shape was the ONLY shape,
+    which silently left a literal "= " in the level value for FLEXIBLE
+    accounts until caught by an explicit flexible-layout audit):
+      FIXED:    "Access level settings for channel #clitest:"
+                "Name           Level"
+                "ACCESS_CHANGE  10"
+                "KICK           -1"              (nobody, incl. founder)
+                "TOPIC          (disabled)"       (LEVELS DIS/DISABLE)
+                "ASSIGN         (founder only)"
+      FLEXIBLE: "Access level settings for channel #clitest:"
+                "ACCESS_CHANGE = 10"
+                "ASSIGN = (founder only)"
     """
-    pattern = re.compile(r'^(\S+)\s+(.+)$')
+    pattern_flexible = re.compile(r'^(\S+)\s+=\s+(.+)$')
+    pattern_fixed = re.compile(r'^(\S+)\s+(.+)$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
@@ -594,7 +633,11 @@ def parse_levels_list(lines):
         first_word = line.split()[0].lower()
         if first_word in ('access', 'name'):
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({"privilege": m.group(1), "level": m.group(2).strip()})
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({"privilege": m.group(1), "level": m.group(2).strip()})
     return entries
@@ -625,23 +668,34 @@ def parse_ns_info(lines):
 
 def parse_ajoin_list(lines):
     """
-    Parses NickServ AJOIN LIST output. Real format (confirmed live — the
-    originally assumed "N: #channel [key]" never matched, always returned
-    zero entries):
-      "claudetest3's auto join list:"
-      "Number  Channel   Key"
-      "1       #clitest  "
+    Parses NickServ AJOIN LIST output. Layout-sensitive — FLEXIBLE
+    (confirmed live) turned out to be the originally-assumed "N:
+    #channel [key]" shape after all, it just wasn't being tried anymore
+    once this was "fixed" to FIXED-only earlier the same day, so FLEXIBLE
+    silently went back to returning zero entries.
+      FIXED (confirmed live):
+        "claudetest3's auto join list:"
+        "Number  Channel   Key"
+        "1       #clitest  "
+      FLEXIBLE (confirmed live):
+        "claudetest3's auto join list:"
+        "1: #clitest"
     """
-    pattern = re.compile(r'^(\d+)\s+(\S+)(?:\s+(\S+))?$')
+    pattern_flexible = re.compile(r'^(\d+):\s+(\S+)(?:\s+(\S+))?$')
+    pattern_fixed = re.compile(r'^(\d+)\s+(\S+)(?:\s+(\S+))?$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
         if not line:
             continue
-        first_word = line.split()[0].lower()
+        first_word = line.split()[0].lower().rstrip(':')
         if first_word == 'number':
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({"channel": m.group(2), "key": m.group(3) or ""})
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({"channel": m.group(2), "key": m.group(3) or ""})
     return entries
@@ -649,16 +703,23 @@ def parse_ajoin_list(lines):
 
 def parse_ns_list(lines):
     """
-    Parses NickServ LIST output. Real format (confirmed live — no email is
-    shown at all, the originally assumed "nick (email)" format never
-    matched, always returned zero entries):
-      "List of entries matching *:"
-      "Nick         Account      Status"
-      "claudetest3  claudetest3  "
-      "claudetest4  claudetest4  Unconfirmed"
-      "End of list - 6/6 matches shown."
+    Parses NickServ LIST output. Layout-sensitive — no email is shown at
+    all in either layout (privacy), but the shape differs completely, and
+    only FIXED was tested when this was first fixed.
+      FIXED (confirmed live):
+        "List of entries matching *:"
+        "Nick         Account      Status"
+        "claudetest3  claudetest3  "
+        "claudetest4  claudetest4  Unconfirmed"
+        "End of list - 6/6 matches shown."
+      FLEXIBLE (confirmed live):
+        "List of entries matching *:"
+        "claudetest3 (account: claudetest3)"
+        "claudetest4 -- Unconfirmed (account: claudetest4)"
+        "End of list - 6/6 matches shown."
     """
-    pattern = re.compile(r'^(\S+)\s+(\S+)(?:\s+(.+))?$')
+    pattern_flexible = re.compile(r'^(\S+)(?:\s+--\s+(.+?))?\s+\(account:\s+(\S+)\)$')
+    pattern_fixed = re.compile(r'^(\S+)\s+(\S+)(?:\s+(.+))?$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
@@ -667,7 +728,15 @@ def parse_ns_list(lines):
         first_word = line.split()[0].lower()
         if first_word in ('list', 'end', 'nick'):
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "nick":    m.group(1),
+                "account": m.group(3),
+                "status":  (m.group(2) or "").strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({
                 "nick":    m.group(1),
@@ -679,17 +748,27 @@ def parse_ns_list(lines):
 
 def parse_hs_list(lines):
     """
-    Parses HostServ LIST / WAITING output. Real format (confirmed live —
-    the previously assumed "N: nick = vhost -- created by X at Y" format
-    (documented as "verified" on 2026-06-30) does not match this Anope
-    build's actual output at all and returns zero entries; real output is
-    tabular, and WAITING lacks the Creator column LIST has (pending
-    requests don't have an approver yet):
-      LIST:    "Number  Nick  VHost  Creator  Created"
-               "1       claudetest3  test.clitest.example.org  PeGaSuS  Mon Jul 27 17:43:08 2026"
-      WAITING: "Number  Nick  VHost  Created"
-               "1       claudetest3  test.clitest.example.org  Mon Jul 27 17:43:08 2026"
+    Parses HostServ LIST / WAITING output. Layout-sensitive — turns out
+    the ORIGINAL "N: nick = vhost -- created by X at Y" assumption (from
+    an even earlier session, docstring said "verified" on 2026-06-30) was
+    actually FLEXIBLE's real shape all along; it got dropped entirely
+    rather than kept alongside FIXED when this was "fixed" earlier the
+    same day using only a FIXED-layout account. Lesson: add a branch,
+    don't replace one.
+      FIXED (confirmed live):
+        LIST:    "Number  Nick  VHost  Creator  Created"
+                 "1       claudetest3  test.clitest.example.org  PeGaSuS  Mon Jul 27 17:43:08 2026"
+        WAITING: "Number  Nick  VHost  Created"
+                 "1       claudetest3  test.clitest.example.org  Mon Jul 27 17:43:08 2026"
+      FLEXIBLE (confirmed live for LIST; WAITING presumed to drop the
+        creator the same way FIXED's WAITING does — creator group uses
+        \\S* to allow for that, per the 2026-06-30 note this carries
+        forward from):
+        LIST: "1: claudetest3 = flextest.clitest.example.org -- created by PeGaSuS at Mon Jul 27 19:17:59 2026"
     """
+    pattern_flexible = re.compile(
+        rf'^(\d+):\s+(\S+)\s+=\s+(\S+)\s+--\s+created by\s*(\S*)\s+at\s+({DATE_RE})$'
+    )
     pattern_with_creator = re.compile(rf'^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+({DATE_RE})$')
     pattern_no_creator = re.compile(rf'^(\d+)\s+(\S+)\s+(\S+)\s+({DATE_RE})$')
     entries = []
@@ -697,8 +776,18 @@ def parse_hs_list(lines):
         line = strip_irc(line).strip()
         if not line:
             continue
-        first_word = line.split()[0].lower()
+        first_word = line.split()[0].lower().rstrip(':')
         if first_word in ('number', 'displayed', 'no'):
+            continue
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "num":       m.group(1),
+                "nick":      m.group(2),
+                "vhost":     m.group(3),
+                "createdby": m.group(4),
+                "createdat": m.group(5).strip(),
+            })
             continue
         m = pattern_with_creator.match(line)
         if m:
@@ -724,20 +813,28 @@ def parse_hs_list(lines):
 
 def parse_hs_offerlist(lines):
     """
-    Parses HostServ OFFERLIST / OFFER LIST output. Real format (confirmed
-    live — the previously assumed "N: template / preview -- trailer"
-    format, documented as "confirmed against live output," does not match
-    this Anope build's actual output at all and returned zero entries;
-    also, contrary to the old note, Reason IS populated here when set):
-      "Current host offer list:"
-      "Number  Offered vhost               Your vhost                    Expires          Reason"
-      "1       users.ptirc.org.{account}   users.ptirc.org.claudetest3   does not expire"
-      "2       users2.ptirc.org.{account}  users2.ptirc.org.claudetest3  does not expire  30d special reason text here"
-      "End of host offer list."
+    Parses HostServ OFFERLIST / OFFER LIST output. Layout-sensitive —
+    turns out the ORIGINAL "N: template / preview -- trailer" assumption
+    (from an earlier session, docstring said "confirmed against live
+    output") was actually FLEXIBLE's real shape all along; it was dropped
+    entirely rather than kept alongside FIXED when this was "fixed"
+    earlier the same day using only a FIXED-layout account, so FLEXIBLE
+    regressed to zero entries. Lesson: add a branch, don't replace one.
+      FIXED (confirmed live):
+        "Current host offer list:"
+        "Number  Offered vhost               Your vhost                    Expires          Reason"
+        "1       users.ptirc.org.{account}   users.ptirc.org.claudetest3   does not expire"
+        "2       users2.ptirc.org.{account}  users2.ptirc.org.claudetest3  does not expire  30d special reason text here"
+        "End of host offer list."
+      FLEXIBLE (confirmed live):
+        "Current host offer list:"
+        "1: users/{account} / users/claudetest3 -- does not expire"
+        "End of host offer list."
     Expires is anchored on its known phrases (like OperServ's ignore list)
-    since it's followed by an unlabeled free-text Reason column.
+    since it's followed by an unlabeled free-text Reason column in FIXED.
     """
-    pattern = re.compile(
+    pattern_flexible = re.compile(r'^(\d+):\s+(\S+)\s+/\s+(\S+)\s+--\s+(.+)$')
+    pattern_fixed = re.compile(
         r'^(\d+)\s+(\S+)\s+(\S+)\s+(does not expire|expires (?:in|on) \S.*?)(?:\s{2,}(.+))?$'
     )
     entries = []
@@ -745,10 +842,19 @@ def parse_hs_offerlist(lines):
         line = strip_irc(line).strip()
         if not line:
             continue
-        first_word = line.split()[0].lower()
+        first_word = line.split()[0].lower().rstrip(':')
         if first_word in ('current', 'number', 'end', 'no', 'host'):
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "num":     m.group(1),
+                "offered": m.group(2),
+                "yours":   m.group(3),
+                "trailer": m.group(4).strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
         if m:
             expires = m.group(4).strip()
             reason = (m.group(5) or "").strip()
@@ -763,14 +869,24 @@ def parse_hs_offerlist(lines):
 
 def parse_os_userlist(lines):
     """
-    Parses OperServ USERLIST output.
-    Real format (confirmed live):
-      "Users list:"
-      "Name         Mask                         Realname"
-      "claudetest3  claudetest@Clk-2DDF2811      claudetest3 Test"
-      "End of users list. 9 users shown."
-    Realname is free text (may contain spaces) so it's captured as the remainder.
+    Parses OperServ USERLIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — the FIXED format below was
+    the only one tested when this was first written, and the FLEXIBLE
+    branch was silently WRONG (matched the generic 3-token regex but left
+    literal parens/brackets in the captured fields) until caught by an
+    explicit flexible-layout audit.
+      FIXED (confirmed live):
+        "Users list:"
+        "Name         Mask                         Realname"
+        "claudetest3  claudetest@Clk-2DDF2811      claudetest3 Test"
+        "End of users list. 9 users shown."
+      FLEXIBLE (confirmed live):
+        "Users list:"
+        "BotServ (services@services.ptirc.org) [Bot Service]"
+        "End of users list. 10 users shown."
     """
+    pattern_flexible = re.compile(r'^(\S+)\s+\((\S+)\)\s+\[(.+)\]$')
+    pattern_fixed = re.compile(r'^(\S+)\s+(\S+)\s+(.+)$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
@@ -779,7 +895,11 @@ def parse_os_userlist(lines):
         first_word = line.split()[0].lower()
         if first_word in ("name", "users") or line.startswith("End of users list"):
             continue
-        m = re.match(r'^(\S+)\s+(\S+)\s+(.+)$', line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({"name": m.group(1), "mask": m.group(2), "realname": m.group(3).strip()})
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({
                 "name":     m.group(1),
@@ -791,14 +911,25 @@ def parse_os_userlist(lines):
 
 def parse_os_chanlist(lines):
     """
-    Parses OperServ CHANLIST output.
-    Real format (confirmed live):
-      "Channel list:"
-      "Name       Users  Modes  Topic"
-      "#clitest   2      nPrt   "
-      "End of channel list. 3 channels shown."
-    Topic may be empty; Modes is a single token (no spaces).
+    Parses OperServ CHANLIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — FLEXIBLE returned zero
+    entries until caught by an explicit flexible-layout audit (the FIXED
+    format was the only one tested when this was first written).
+      FIXED (confirmed live):
+        "Channel list:"
+        "Name       Users  Modes  Topic"
+        "#clitest   2      nPrt   "
+        "End of channel list. 3 channels shown."
+      FLEXIBLE (confirmed live):
+        "Channel list:"
+        "#clitest -- 2 user(s); +nPrt (Test topic for flexible check)"
+        "#opers -- 2 user(s); +nPrt"
+        "End of channel list. 2 channels shown."
+    Topic may be empty; Modes has a leading "+" in FLEXIBLE but not FIXED —
+    normalized to bare (no "+") in both, since the template adds its own.
     """
+    pattern_flexible = re.compile(r'^(\S+)\s+--\s+(\d+)\s+user\(s\);\s+\+(\S+)(?:\s+\((.+)\))?$')
+    pattern_fixed = re.compile(r'^(\S+)\s+(\d+)\s+(\S+)(?:\s+(.+))?$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
@@ -807,7 +938,16 @@ def parse_os_chanlist(lines):
         first_word = line.split()[0].lower()
         if first_word in ("name", "channel") or line.startswith("End of channel list"):
             continue
-        m = re.match(r'^(\S+)\s+(\d+)\s+(\S+)(?:\s+(.+))?$', line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "channel": m.group(1),
+                "users":   int(m.group(2)),
+                "modes":   m.group(3),
+                "topic":   (m.group(4) or "").strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({
                 "channel": m.group(1),
@@ -851,24 +991,43 @@ def parse_os_oper_list(lines):
 
 def parse_os_news_list(lines):
     """
-    Parses OperServ LOGONNEWS/OPERNEWS/RANDOMNEWS LIST output.
-    Real format (confirmed live):
-      "Oper news items:"
-      "Number  Creator  Created                   Text"
-      "1       PeGaSuS  Mon Jul 27 11:47:16 2026  Welcome opers, please read the MOTD."
-      "End of news list."
+    Parses OperServ LOGONNEWS/OPERNEWS/RANDOMNEWS LIST output. Like every
+    other Anope list command using ListFormatter, this is ALSO
+    layout-sensitive (NS SET LAYOUT) — this was missed all session because
+    only FIXED-layout accounts were used for testing, and only caught when
+    a real FLEXIBLE-layout production account reported LOGONNEWS
+    "not appearing":
+      FIXED (confirmed live):
+        "Oper news items:"
+        "Number  Creator  Created                   Text"
+        "1       PeGaSuS  Mon Jul 27 11:47:16 2026  Welcome opers, please read the MOTD."
+        "End of news list."
+      FLEXIBLE (confirmed live):
+        "Logon news items:"
+        "1: Welcome to PTirc! -- created by PeGaSuS on Mon Jul 27 19:02:10 2026"
+        "End of news list."
     """
-    pattern = re.compile(rf'^(\d+)\s+(\S+)\s+({DATE_RE})\s+(.+)$')
+    pattern_fixed = re.compile(rf'^(\d+)\s+(\S+)\s+({DATE_RE})\s+(.+)$')
+    pattern_flexible = re.compile(rf'^(\d+):\s+(.+?)\s+--\s+created by\s+(\S+)\s+on\s+({DATE_RE})$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
         if not line:
             continue
-        first_word = line.split()[0].lower()
+        first_word = line.split()[0].lower().rstrip(':')
         if first_word in ("number",) or line.endswith("news items:") or line.startswith("End of news list") \
            or "no logon news" in line.lower() or "no oper news" in line.lower() or "no random news" in line.lower():
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "num":     m.group(1),
+                "creator": m.group(3),
+                "created": m.group(4).strip(),
+                "text":    m.group(2).strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({
                 "num":     m.group(1),
@@ -881,15 +1040,24 @@ def parse_os_news_list(lines):
 
 def parse_os_ignore_list(lines):
     """
-    Parses OperServ IGNORE LIST output.
-    Real format (confirmed live):
-      "Services ignore list:"
-      "Mask              Creator  Reason          Expires"
-      "*!*@spammer.test  PeGaSuS  testing ignore  expires in 1 hour"
-    Reason is free text; Expires is anchored on its known prefixes since both
-    trailing columns are free text and can't otherwise be split reliably.
+    Parses OperServ IGNORE LIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — FLEXIBLE silently matched the
+    FIXED-only regex and produced garbled wrong data (not even a clean
+    failure) until caught by an explicit flexible-layout audit.
+      FIXED (confirmed live):
+        "Services ignore list:"
+        "Mask              Creator  Reason          Expires"
+        "*!*@spammer.test  PeGaSuS  testing ignore  expires in 1 hour"
+      FLEXIBLE (confirmed live):
+        "Services ignore list:"
+        "*!*@ignoretest.example.com -- created by claudetest3; expires in 59 minutes, 59 seconds (testreason)"
+    Reason/Expires are anchored on Expires' known prefixes since they're
+    free text with no other reliable delimiter.
     """
-    pattern = re.compile(
+    pattern_flexible = re.compile(
+        r'^(\S+)\s+--\s+created by\s+(\S+);\s+(does not expire|expires (?:in|on) .+?)(?:\s+\((.+)\))?$'
+    )
+    pattern_fixed = re.compile(
         r'^(\S+)\s+(\S+)\s+(.+?)\s+(expires in .+|expires on .+|does not expire)$'
     )
     entries = []
@@ -900,7 +1068,16 @@ def parse_os_ignore_list(lines):
         if line.startswith("Services ignore list") or line.lower().startswith("mask") \
            or line.startswith("Ignore list is empty"):
             continue
-        m = pattern.match(line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({
+                "mask":    m.group(1),
+                "creator": m.group(2),
+                "reason":  (m.group(4) or "").strip(),
+                "expires": m.group(3).strip(),
+            })
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({
                 "mask":    m.group(1),
@@ -934,14 +1111,22 @@ def parse_bs_info(lines):
 
 def parse_bs_botlist(lines):
     """
-    Parses BotServ BOTLIST output.
-    Real format (confirmed live):
-      "Bot list:"
-      "Nick      Mask                         Real name"
-      "TestBot   testbot@bots.ptirc.org       Test Bot"
-      "7 bots available."
-    Real name is free text (may contain spaces), captured as the remainder.
+    Parses BotServ BOTLIST output. Layout-sensitive like every other Anope
+    list command using ListFormatter — FLEXIBLE silently matched the
+    FIXED-only regex and left literal parens/brackets in the captured
+    fields until caught by an explicit flexible-layout audit.
+      FIXED (confirmed live):
+        "Bot list:"
+        "Nick      Mask                         Real name"
+        "TestBot   testbot@bots.ptirc.org       Test Bot"
+        "7 bots available."
+      FLEXIBLE (confirmed live):
+        "Bot list:"
+        "TestBot (testbot@bots.ptirc.org) [Test Bot]"
+        "8 bots available."
     """
+    pattern_flexible = re.compile(r'^(\S+)\s+\((\S+)\)\s+\[(.+)\]$')
+    pattern_fixed = re.compile(r'^(\S+)\s+(\S+)\s+(.+)$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
@@ -950,7 +1135,11 @@ def parse_bs_botlist(lines):
         first_word = line.split()[0].lower()
         if first_word in ('nick', 'bot') or re.match(r'^\d+\s+bots?\s+available', line, re.I):
             continue
-        m = re.match(r'^(\S+)\s+(\S+)\s+(.+)$', line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({"nick": m.group(1), "mask": m.group(2), "realname": m.group(3).strip()})
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({
                 "nick":     m.group(1),
@@ -962,23 +1151,34 @@ def parse_bs_botlist(lines):
 
 def parse_bs_badwords(lines):
     """
-    Parses BotServ BADWORDS LIST output.
-    Real format (confirmed live):
-      "Bad words list for #clitest:"
-      "Number  Word  Type"
-      "1       smeg  ANY"
-      "2       heck  SINGLE"
-      "End of bad words list."
+    Parses BotServ BADWORDS LIST output. Layout-sensitive like every other
+    Anope list command using ListFormatter — FLEXIBLE returned zero
+    entries until caught by an explicit flexible-layout audit.
+      FIXED (confirmed live):
+        "Bad words list for #clitest:"
+        "Number  Word  Type"
+        "1       smeg  ANY"
+        "End of bad words list."
+      FLEXIBLE (confirmed live):
+        "Bad words list for #clitest:"
+        "1: smeg -- type: ANY"
+        "End of bad words list."
     """
+    pattern_flexible = re.compile(r'^(\d+):\s+(\S+)\s+--\s+type:\s+(\S+)$')
+    pattern_fixed = re.compile(r'^(\d+)\s+(\S+)\s+(\S+)$')
     entries = []
     for line in lines:
         line = strip_irc(line).strip()
         if not line:
             continue
-        first_word = line.split()[0].lower()
+        first_word = line.split()[0].lower().rstrip(':')
         if first_word in ('number', 'bad', 'end'):
             continue
-        m = re.match(r'^(\d+)\s+(\S+)\s+(\S+)$', line)
+        m = pattern_flexible.match(line)
+        if m:
+            entries.append({"num": m.group(1), "word": m.group(2), "type": m.group(3)})
+            continue
+        m = pattern_fixed.match(line)
         if m:
             entries.append({"num": m.group(1), "word": m.group(2), "type": m.group(3)})
     return entries

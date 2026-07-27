@@ -15,6 +15,96 @@ For install/usage docs, see the [README](../README.md).
 
 ---
 
+## Session Updates (2026-07-27, cont'd) — LOGONNEWS "missing" on production → discovered the whole earlier parser audit was FIXED-only, 14 more fixes
+
+A production report ("LOGONNEWS list shows nothing") turned into the most
+important finding of the day. First troubleshooting step ruled out the
+panel entirely: the user's live IRC session had lost `+o` after a
+reconnect (same `require_oper` behavior documented earlier), confirmed via
+`Access denied for user PeGaSuS ... with command LOGONNEWS/STATS/...` in
+Anope's log — re-`/OPER`ing fixed it, nothing to do in code.
+
+**Then the user mentioned they run `NS SET LAYOUT FLEXIBLE` on production.**
+Every single parser fixed in the two audit passes above — the "9 more
+broken list parsers" pass AND the brand-new commands built earlier today
+(BotServ, OperServ USERLIST/CHANLIST/IGNORE/News) — had been verified
+*exclusively* against FIXED-layout output, because every test account used
+this session defaulted to Fixed layout. Nobody had checked FLEXIBLE at
+all. Switching a test account to `NS SET LAYOUT FLEXIBLE` and re-running
+the exact same commands found **14 more parsers broken or silently wrong
+under FLEXIBLE**, several of which are parsers that were JUST rewritten
+earlier the same day — the FLEXIBLE branch wasn't missing by oversight in
+old code, it was actively *removed* by treating "the format I can see
+right now" as "the format," instead of "a format."
+
+**The pattern that keeps costing us**: several of the "new" FIXED formats
+documented today turned out to be genuinely new relative to an *old*
+docstring that already described the FLEXIBLE shape correctly (from an
+even earlier session) — e.g. `parse_hs_list`, `parse_hs_offerlist`,
+`parse_ajoin_list`. Those old docstrings weren't wrong, they were just
+*incomplete* (FIXED-only accounts hadn't been tested against them yet).
+Today's "fix" replaced the FLEXIBLE pattern with the FIXED one instead of
+adding FIXED alongside FLEXIBLE — turning a stale-but-half-correct parser
+into a fresh-but-still-half-correct one. **Every fix in this entry adds a
+branch; none of them replace one.**
+
+Fixed (all in `utils.py`, all verified against real live output in both
+layouts, plus a live confirmation `os_oper_list`/`bs_info`/`cert_list`
+are *already* layout-agnostic by construction and needed no change):
+
+- `parse_os_news_list` — FLEXIBLE: `"N: text -- created by X on DATE"` vs
+  FIXED's tabular columns. **This is the one that triggered the whole
+  audit.**
+- `parse_os_userlist` / `parse_bs_botlist` — FLEXIBLE: `"name (mask)
+  [realname]"`. Previously **silently wrong**, not just empty: the
+  FIXED-only 3-token regex still matched FLEXIBLE's shape by accident,
+  leaving literal parens/brackets in the captured fields.
+- `parse_os_chanlist` — FLEXIBLE: `"#chan -- N user(s); +modes (topic)"`
+  vs FIXED's tabular columns.
+- `parse_os_ignore_list` — FLEXIBLE: `"mask -- created by X; expires...
+  (reason)"`. Also **silently wrong** before the fix (matched by
+  accident, produced garbled `creator`/`reason`/`expires` values).
+- `parse_bs_badwords` — FLEXIBLE: `"N: word -- type: TYPE"` vs FIXED's
+  tabular columns.
+- `parse_levels_list` — FLEXIBLE uses `"PRIVILEGE = level"` (with `=`,
+  the format an *even earlier* fix had assumed and removed); FIXED has no
+  `=` at all. Needed both, not either.
+- `parse_entrymsg_list` — FLEXIBLE: `"N: message -- created by X at
+  DATE"` vs FIXED's tabular columns.
+- `parse_log_list` — FLEXIBLE: `"N: COMMAND on Service: METHOD"` (also
+  close to an older assumption) vs FIXED's tabular columns. Same
+  short-vs-full command-name resubmission quirk applies to both branches.
+- `parse_ns_list` — FLEXIBLE: `"nick (account: X)"` /
+  `"nick -- Status (account: X)"` vs FIXED's tabular columns.
+- `parse_ajoin_list` — FLEXIBLE: `"N: #channel"` (the original
+  pre-existing assumption, dropped instead of kept) vs FIXED's tabular
+  columns.
+- `parse_hs_list` (LIST/WAITING) — FLEXIBLE: `"N: nick = vhost --
+  created by X at DATE"` (again, the original pre-existing assumption,
+  dropped instead of kept) vs FIXED's tabular columns.
+- `parse_hs_offerlist` — FLEXIBLE: `"N: offered / yours -- trailer"`
+  (again, the original pre-existing assumption) vs FIXED's tabular
+  columns.
+
+**Already layout-agnostic, verified, no change needed**: `parse_cs_list`
+(already had both branches from the earlier pass), `parse_os_oper_list`
+(genuinely uses a fixed non-ListFormatter table regardless of layout —
+confirmed live, identical output both ways), `parse_bs_info` /
+`parse_cs_info` / `parse_ns_info` (key:value line splitting doesn't care
+about column alignment), `parse_cert_list` (generic leading-hex-run
+extraction naturally matches both shapes).
+
+**Process note for next time**: don't trust "verified against real
+output" without checking which layout the test account used. From now on,
+any new or touched parser should be tested against **both** FIXED and
+FLEXIBLE before being called done — a second disposable test account (or
+just `NS SET LAYOUT FLEXIBLE` on the existing one, then set it back) costs
+almost nothing and would have caught all fourteen of these in the same
+session they were written, instead of via a separate production bug
+report.
+
+---
+
 ## Session Updates (2026-07-27, cont'd) — CERT LIST parser fixed + Add Certificate UI was fundamentally wrong
 
 The one parser flagged as "not independently verified" in the previous
